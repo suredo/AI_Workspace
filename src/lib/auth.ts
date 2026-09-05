@@ -7,6 +7,11 @@ import { logger } from "@/lib/logger";
 export const BCRYPT_ROUNDS = 12;
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 
+// Dummy bcrypt hash for timing-attack defense.
+// Cost matches production (12 rounds). Must be a valid bcrypt hash string.
+const DUMMY_BCRYPT_HASH =
+  "$2a$12$VQ4Hn.sTx.pMFzJhPzOBCeQGzVkFpRUMbMFZxPzLpEdBrDnHJqkNm";
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -66,10 +71,21 @@ export const authOptions: NextAuthOptions = {
             .single();
 
           if (error) {
-            logger.error(context, "Supabase query failed", {
+            logger.warn(context, "Supabase query failed", {
               code: error.code,
-              message: error.message,
             });
+            return null;
+          }
+
+          // Explicitly handle { data: null, error: null }
+          if (!data) {
+            logger.debug(context, "User not found");
+            // Timing-attack defense: run dummy bcrypt even when user is null
+            try {
+              await bcrypt.compare(credentials.password as string, DUMMY_BCRYPT_HASH);
+            } catch {
+              // Swallow — timing protection still applied
+            }
             return null;
           }
 
@@ -81,23 +97,15 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // If user not found, still run bcrypt to prevent timing-based account enumeration
-        if (!user || !user.password_hash) {
-          if (!user) {
-            logger.info(context, "User not found", { email });
-          } else {
-            logger.error(context, "User has no password_hash", {
-              userId: user.id,
-            });
-          }
-          // Run bcrypt with dummy hash to keep timing consistent
+        // If user has no password_hash, still run bcrypt for timing consistency
+        if (!user.password_hash) {
+          logger.warn(context, "User has no password_hash", {
+            userId: user.id,
+          });
           try {
-            await bcrypt.compare(
-              credentials.password as string,
-              "$2a$12$VQ4Hn.sTx.pMFzJhPzOBCeQGzVkFpRUMbMFZxPzLpEdBrDnHJqkNm"
-            );
+            await bcrypt.compare(credentials.password as string, DUMMY_BCRYPT_HASH);
           } catch {
-            // Swallow error — timing protection still applied
+            // Swallow — timing protection still applied
           }
           return null;
         }
@@ -117,18 +125,17 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (!isValid) {
-          logger.info(context, "Invalid credentials", { email });
+          logger.debug(context, "Invalid credentials");
           return null;
         }
 
         if (typeof user.id !== "string" || !user.id) {
-          logger.error(context, "Invalid user id", { userId: user.id });
+          logger.error(context, "Invalid user id");
           return null;
         }
 
         logger.info(context, "Login successful", {
           userId: user.id,
-          email: user.email,
         });
 
         return {
@@ -148,14 +155,14 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
+      if (user?.id) {
         token.userId = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (token?.userId && session.user) {
-        session.user.id = token.userId;
+        session.user.id = String(token.userId);
       }
       return session;
     },

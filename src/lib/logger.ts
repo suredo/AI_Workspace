@@ -1,8 +1,26 @@
-type LogLevel = "info" | "warn" | "error";
+type LogLevel = "debug" | "info" | "warn" | "error";
+
+const LOG_LEVELS: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
+
+function getMinLogLevel(): LogLevel {
+  const env = process.env.LOG_LEVEL ?? (process.env.NODE_ENV === "production" ? "warn" : "debug");
+  return (env as LogLevel) ?? "debug";
+}
+
+function shouldLog(level: LogLevel): boolean {
+  return LOG_LEVELS[level] >= LOG_LEVELS[getMinLogLevel()];
+}
 
 function log(level: LogLevel, context: string, message: string, data?: Record<string, unknown>) {
+  if (!shouldLog(level)) return;
+
   const timestamp = new Date().toISOString();
-  const entry = { timestamp, level, context, message, ...data };
+  const entry: Record<string, unknown> = { timestamp, level, context, message, ...(data ?? {}) };
 
   if (level === "error") {
     console.error(JSON.stringify(entry));
@@ -14,6 +32,8 @@ function log(level: LogLevel, context: string, message: string, data?: Record<st
 }
 
 export const logger = {
+  debug: (context: string, message: string, data?: Record<string, unknown>) =>
+    log("debug", context, message, data),
   info: (context: string, message: string, data?: Record<string, unknown>) =>
     log("info", context, message, data),
   warn: (context: string, message: string, data?: Record<string, unknown>) =>
