@@ -80,7 +80,7 @@ chore(deps): update next-auth to 4.24.15
 
 - Use Tailwind utility classes — no custom CSS unless unavoidable
 - Follow existing patterns: `flex`, `items-center`, `gap-*`, `rounded-*`
-- Use `clsx` or template literals for conditional classes (install if needed)
+- Use template literals for conditional classes
 
 ### File Naming
 
@@ -104,14 +104,13 @@ src/
 
 ## Testing
 
-### Current State
+### Setup
 
-Testing infrastructure is not yet set up. When tests are added:
-
-- Use **Vitest** for unit tests (faster, native ESM)
-- Use **Playwright** for E2E tests if needed
+- **Vitest** for unit tests (faster, native ESM)
+- **Playwright** for E2E tests if needed (not yet set up)
 - Test files live next to source: `lib/auth.test.ts`
-- Run tests: `npm test`
+- Config: `vitest.config.ts`
+- Run tests: `npm test` (single run) or `npm run test:watch` (watch mode)
 
 ### Testing Principles
 
