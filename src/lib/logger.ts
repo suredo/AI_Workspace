@@ -8,8 +8,10 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 function getMinLogLevel(): LogLevel {
-  const env = process.env.LOG_LEVEL ?? (process.env.NODE_ENV === "production" ? "warn" : "debug");
-  return (env as LogLevel) ?? "debug";
+  const raw = process.env.LOG_LEVEL ?? (process.env.NODE_ENV === "production" ? "warn" : "debug");
+  const env = raw.toLowerCase();
+  if (env in LOG_LEVELS) return env as LogLevel;
+  return "debug";
 }
 
 function shouldLog(level: LogLevel): boolean {
