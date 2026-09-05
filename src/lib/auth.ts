@@ -59,21 +59,21 @@ export const authOptions: NextAuthOptions = {
 
         let user;
         try {
-          const result = await supabase
+          const { data, error } = await supabase
             .from("users")
             .select("id, email, password_hash, display_name")
             .eq("email", email)
             .single();
 
-          user = result.data;
-
-          if (result.error) {
+          if (error) {
             logger.error(context, "Supabase query failed", {
-              code: result.error.code,
-              message: result.error.message,
+              code: error.code,
+              message: error.message,
             });
             return null;
           }
+
+          user = data;
         } catch (error) {
           logger.error(context, "Supabase request failed", {
             error: error instanceof Error ? error.message : String(error),
@@ -91,7 +91,14 @@ export const authOptions: NextAuthOptions = {
             });
           }
           // Run bcrypt with dummy hash to keep timing consistent
-          await bcrypt.compare(credentials.password as string, "$2a$12$x".padEnd(60, "0"));
+          try {
+            await bcrypt.compare(
+              credentials.password as string,
+              "$2a$12$VQ4Hn.sTx.pMFzJhPzOBCeQGzVkFpRUMbMFZxPzLpEdBrDnHJqkNm"
+            );
+          } catch {
+            // Swallow error — timing protection still applied
+          }
           return null;
         }
 
