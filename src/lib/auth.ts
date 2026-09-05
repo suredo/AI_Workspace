@@ -81,15 +81,17 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        if (!user) {
-          logger.info(context, "User not found", { email });
-          return null;
-        }
-
-        if (!user.password_hash) {
-          logger.error(context, "User has no password_hash", {
-            userId: user.id,
-          });
+        // If user not found, still run bcrypt to prevent timing-based account enumeration
+        if (!user || !user.password_hash) {
+          if (!user) {
+            logger.info(context, "User not found", { email });
+          } else {
+            logger.error(context, "User has no password_hash", {
+              userId: user.id,
+            });
+          }
+          // Run bcrypt with dummy hash to keep timing consistent
+          await bcrypt.compare(credentials.password as string, "$2a$12$x".padEnd(60, "0"));
           return null;
         }
 
@@ -108,7 +110,12 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (!isValid) {
-          logger.info(context, "Invalid password", { email });
+          logger.info(context, "Invalid credentials", { email });
+          return null;
+        }
+
+        if (typeof user.id !== "string" || !user.id) {
+          logger.error(context, "Invalid user id", { userId: user.id });
           return null;
         }
 
