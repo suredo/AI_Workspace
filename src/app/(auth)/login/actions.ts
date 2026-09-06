@@ -8,6 +8,7 @@ export async function loginAction(
 ): Promise<{ error: string } | undefined> {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const callbackUrl = (formData.get("callbackUrl") as string) || "/dashboard";
 
   if (!email || !password) {
     return { error: "Email and password are required" };
@@ -17,7 +18,7 @@ export async function loginAction(
     await signIn("credentials", {
       email,
       password,
-      redirectTo: "/dashboard",
+      redirectTo: callbackUrl,
     });
   } catch (error) {
     const digest = (error as { digest?: string }).digest;

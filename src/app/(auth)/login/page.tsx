@@ -1,10 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { loginAction } from "./actions";
 
-export default function LoginPage() {
+function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, undefined);
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
@@ -15,6 +18,7 @@ export default function LoginPage() {
         </p>
       </div>
       <form action={formAction} className="space-y-4">
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email
@@ -64,5 +68,13 @@ export default function LoginPage() {
         </a>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

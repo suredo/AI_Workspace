@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const AUTH_RATE_LIMIT = {
@@ -11,20 +12,23 @@ const REGISTER_RATE_LIMIT = {
   maxRequests: 3,
 };
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+const PROTECTED_ROUTES = ["/dashboard", "/workspaces"];
 
-  // NOTE: x-forwarded-for / x-real-ip are client-controlled headers.
-  // In production behind a trusted proxy (Vercel, Cloudflare), these are
-  // set reliably. On self-hosted deployments, rate limiting based on these
-  // headers can be bypassed by spoofing. Consider using a trusted proxy
-  // header or accept this limitation for MVP.
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || request.headers.get("x-real-ip")
-    || "anonymous";
+function isProtectedRoute(pathname: string): boolean {
+  return PROTECTED_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+}
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
   // Rate limit login attempts (POST to credentials callback only)
   if (pathname === "/api/auth/callback/credentials") {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "anonymous";
     const key = `auth:${ip}`;
     const { allowed, retryAfterMs } = checkRateLimit(key, AUTH_RATE_LIMIT);
 
@@ -48,6 +52,10 @@ export function middleware(request: NextRequest) {
 
   // Rate limit registration attempts
   if (pathname === "/api/auth/register") {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "anonymous";
     const key = `register:${ip}`;
     const { allowed, retryAfterMs } = checkRateLimit(key, REGISTER_RATE_LIMIT);
 
@@ -69,9 +77,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Check session for protected routes
+  if (isProtectedRoute(pathname)) {
+    const session = await auth();
+
+    if (!session?.user) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/api/auth/:path*"],
+  matcher: ["/api/auth/:path*", "/dashboard/:path*"],
 };
