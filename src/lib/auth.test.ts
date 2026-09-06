@@ -39,12 +39,12 @@ describe("authorize", () => {
   });
 
   it("returns null for missing credentials", async () => {
-    const result = await authorize({ email: null, password: null } as unknown as Record<string, unknown>);
+    const result = await authorize(undefined);
     expect(result).toBeNull();
   });
 
   it("returns null for missing password", async () => {
-    const result = await authorize({ email: "test@example.com", password: null } as unknown as Record<string, unknown>);
+    const result = await authorize({ email: "test@example.com" });
     expect(result).toBeNull();
   });
 
@@ -197,5 +197,6 @@ describe("callbacks", () => {
     });
 
     expect(result).toBeDefined();
+    expect(result.user).toBeUndefined();
   });
 });

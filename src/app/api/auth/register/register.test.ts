@@ -123,6 +123,20 @@ describe("POST /api/auth/register", () => {
     expect(body.details).toContain("Display name is required");
   });
 
+  it("returns 400 for whitespace-only display name", async () => {
+    const request = makeRequest({
+      email: "test@example.com",
+      password: "password123",
+      displayName: "   ",
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.details).toContain("Display name cannot be empty");
+  });
+
   it("returns 409 for duplicate email", async () => {
     mockSupabase.single.mockResolvedValue({
       data: { id: "existing-user" },

@@ -3,7 +3,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 const AUTH_RATE_LIMIT = {
   windowMs: 60 * 1000,
-  maxRequests: 5,
+  maxRequests: 3,
 };
 
 const REGISTER_RATE_LIMIT = {
@@ -14,15 +14,17 @@ const REGISTER_RATE_LIMIT = {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // NOTE: x-forwarded-for / x-real-ip are client-controlled headers.
+  // In production behind a trusted proxy (Vercel, Cloudflare), these are
+  // set reliably. On self-hosted deployments, rate limiting based on these
+  // headers can be bypassed by spoofing. Consider using a trusted proxy
+  // header or accept this limitation for MVP.
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
     || request.headers.get("x-real-ip")
     || "anonymous";
 
-  // Rate limit login attempts
-  const isLoginAttempt =
-    pathname.startsWith("/api/auth/signin") || pathname === "/api/auth/callback/credentials";
-
-  if (isLoginAttempt) {
+  // Rate limit login attempts (POST to credentials callback only)
+  if (pathname === "/api/auth/callback/credentials") {
     const key = `auth:${ip}`;
     const { allowed, retryAfterMs } = checkRateLimit(key, AUTH_RATE_LIMIT);
 
@@ -45,9 +47,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Rate limit registration attempts
-  const isRegisterAttempt = pathname === "/api/auth/register";
-
-  if (isRegisterAttempt) {
+  if (pathname === "/api/auth/register") {
     const key = `register:${ip}`;
     const { allowed, retryAfterMs } = checkRateLimit(key, REGISTER_RATE_LIMIT);
 

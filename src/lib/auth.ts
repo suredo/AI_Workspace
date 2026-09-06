@@ -22,7 +22,7 @@ declare module "next-auth/jwt" {
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  trustHost: true,
+  trustHost: process.env.NODE_ENV !== "production",
   providers: [
     Credentials({
       credentials: {
@@ -43,13 +43,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
-      return jwtCallback({ token: token as Record<string, unknown>, user: user as { id?: string } | null });
+      return jwtCallback({ token, user });
     },
     async session({ session, token }) {
-      return sessionCallback({
-        session: session as { user?: { id?: string }; expires: string },
-        token: token as Record<string, unknown>,
-      });
+      return sessionCallback({ session, token });
     },
   },
 });

@@ -3,10 +3,11 @@ import bcrypt from "bcryptjs";
 import { createClient } from "@/lib/supabase/server";
 import { BCRYPT_ROUNDS } from "@/lib/auth-helpers";
 import { logger } from "@/lib/logger";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD_LENGTH = 8;
-const MAX_DISPLAY_NAME_LENGTH = 100;
+import {
+  EMAIL_REGEX,
+  MIN_PASSWORD_LENGTH,
+  MAX_DISPLAY_NAME_LENGTH,
+} from "@/lib/validation";
 
 interface RegisterBody {
   email?: string;

@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { createClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
+import type { Session } from "next-auth";
 
 export const BCRYPT_ROUNDS = 12;
 
@@ -23,7 +24,7 @@ export async function authorize(
     return null;
   }
 
-  const email = normalizeEmail(credentials.email as string);
+  const email = normalizeEmail(String(credentials.email));
 
   let supabase;
   try {
@@ -106,9 +107,7 @@ export async function authorize(
     return null;
   }
 
-  logger.info(context, "Login successful", {
-    userId: user.id,
-  });
+  logger.debug(context, "Login successful");
 
   return {
     id: user.id,
@@ -134,9 +133,9 @@ export async function sessionCallback({
   session,
   token,
 }: {
-  session: { user?: { id?: string }; expires: string };
+  session: Session;
   token: Record<string, unknown>;
-}): Promise<{ user?: { id?: string }; expires: string }> {
+}): Promise<Session> {
   if (token?.userId && session.user) {
     session.user.id = String(token.userId);
   }

@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD_LENGTH = 8;
+import { EMAIL_REGEX, MIN_PASSWORD_LENGTH, MAX_DISPLAY_NAME_LENGTH } from "@/lib/validation";
 
 interface FormErrors {
   email?: string;
@@ -28,10 +26,11 @@ function validateForm(email: string, password: string, displayName: string): For
     errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
   }
 
-  if (!displayName) {
+  const trimmedName = displayName.trim();
+  if (!trimmedName) {
     errors.displayName = "Display name is required";
-  } else if (displayName.length > 100) {
-    errors.displayName = "Display name must be 100 characters or less";
+  } else if (trimmedName.length > MAX_DISPLAY_NAME_LENGTH) {
+    errors.displayName = `Display name must be ${MAX_DISPLAY_NAME_LENGTH} characters or less`;
   }
 
   return errors;

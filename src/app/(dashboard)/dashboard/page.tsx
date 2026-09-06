@@ -15,7 +15,6 @@ export default async function DashboardPage() {
         <p className="text-gray-600">
           Welcome, {session.user.name ?? session.user.email}!
         </p>
-        <p className="text-sm text-gray-400">ID: {session.user.id}</p>
       </div>
     </div>
   );

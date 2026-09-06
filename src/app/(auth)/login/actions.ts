@@ -20,7 +20,8 @@ export async function loginAction(
       redirectTo: "/dashboard",
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("NEXT_REDIRECT")) {
+    const digest = (error as { digest?: string }).digest;
+    if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
     return {
