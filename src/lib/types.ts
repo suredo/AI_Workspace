@@ -20,3 +20,18 @@ export interface WorkspaceWithMembers extends Workspace {
   workspace_members: WorkspaceMember[];
   member_count: number;
 }
+
+export interface Invitation {
+  id: string;
+  workspace_id: string;
+  token: string;
+  created_by: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+}
+
+export interface InvitationWithDetails extends Invitation {
+  workspace_name: string;
+  created_by_name: string;
+}
