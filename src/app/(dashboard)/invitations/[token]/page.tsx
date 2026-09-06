@@ -21,21 +21,28 @@ export default function InvitationAcceptPage() {
   const [error, setError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        // We need to fetch invitation info — but the accept endpoint requires auth.
-        // For the initial load, we'll try to get basic info from a lightweight check.
-        // If the user isn't authed, they'll be redirected to login by the proxy.
-        const res = await fetch(`/api/invitations/${token}/info`);
-        if (!res.ok) {
+        const [infoRes, sessionRes] = await Promise.all([
+          fetch(`/api/invitations/${token}/info`),
+          fetch("/api/auth/session"),
+        ]);
+
+        if (!cancelled) {
+          const sessionData = await sessionRes.json();
+          setAuthenticated(sessionData !== null && !!sessionData?.user);
+        }
+
+        if (!infoRes.ok) {
           throw new Error("Invalid or expired invitation");
         }
-        const data = await res.json();
+        const infoData = await infoRes.json();
         if (!cancelled) {
-          setInvitation(data);
+          setInvitation(infoData);
         }
       } catch (err) {
         if (!cancelled) {
@@ -115,6 +122,40 @@ export default function InvitationAcceptPage() {
           <Link href="/dashboard" className="inline-block text-blue-600 hover:text-blue-500 text-sm">
             Go to Dashboard
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated && invitation) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm text-center space-y-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+            <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Join Workspace</h1>
+          <p className="text-gray-600">
+            You&apos;ve been invited to join <strong>{invitation.workspace_name}</strong>
+          </p>
+          <p className="text-sm text-gray-500">
+            Invited by {invitation.created_by_name}
+          </p>
+          <div className="pt-4">
+            <Link
+              href={`/login?callbackUrl=${encodeURIComponent(`/invitations/${token}`)}`}
+              className="inline-block w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 text-center"
+            >
+              Sign in to join
+            </Link>
+          </div>
+          <p className="pt-2">
+            <Link href="/register" className="text-sm text-blue-600 hover:text-blue-500">
+              Create an account
+            </Link>
+          </p>
         </div>
       </div>
     );
