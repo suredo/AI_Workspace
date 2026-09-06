@@ -1,13 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { CredentialsConfig } from "next-auth/providers/credentials";
-import type { RequestInternal } from "next-auth/core";
 import type { JWT } from "next-auth/jwt";
 import type { Session, User } from "next-auth";
 import bcrypt from "bcryptjs";
 
+type AuthRequest = {
+  body?: Record<string, unknown>;
+  query?: Record<string, unknown>;
+  headers?: Record<string, unknown>;
+  method?: string;
+};
+
 type AuthorizeFn = (
   credentials: Record<string, string> | undefined,
-  req: Pick<RequestInternal, "body" | "query" | "headers" | "method">
+  req: AuthRequest
 ) => Promise<User | null>;
 
 // Mock Supabase client
@@ -34,8 +40,6 @@ vi.mock("@/lib/logger", () => ({
 import { authOptions } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-type AuthRequest = Pick<RequestInternal, "body" | "query" | "headers" | "method">;
-
 function getAuthorize() {
   const provider = authOptions.providers[0] as CredentialsConfig;
   return (provider.options as { authorize: AuthorizeFn }).authorize;
@@ -54,13 +58,13 @@ describe("authorize", () => {
 
   it("returns null for missing credentials", async () => {
     const authorize = getAuthorize();
-    const result = await authorize({ email: null, password: null } as Record<string, string>, {} as AuthRequest);
+    const result = await authorize({ email: null, password: null } as unknown as Record<string, string>, {} as AuthRequest);
     expect(result).toBeNull();
   });
 
   it("returns null for missing password", async () => {
     const authorize = getAuthorize();
-    const result = await authorize({ email: "test@example.com", password: null } as Record<string, string>, {} as AuthRequest);
+    const result = await authorize({ email: "test@example.com", password: null } as unknown as Record<string, string>, {} as AuthRequest);
     expect(result).toBeNull();
   });
 
@@ -236,7 +240,7 @@ describe("callbacks", () => {
     }) => Session;
 
     const result = await sessionCallback({
-      session: { user: { name: "Test", email: null, image: null }, expires: "2099-01-01" },
+      session: { user: { id: "old-id", name: "Test", email: null, image: null }, expires: "2099-01-01" },
       token: { userId: "user-123" } as JWT,
       user: { id: "u1", email: "test@test.com", name: null, image: null },
       newSession: null,
