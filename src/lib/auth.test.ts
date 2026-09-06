@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { CredentialsConfig } from "next-auth/providers/credentials";
+import type { RequestInternal } from "next-auth/core";
+import type { JWT } from "next-auth/jwt";
+import type { Session, User } from "next-auth";
 import bcrypt from "bcryptjs";
+
+type AuthorizeFn = (
+  credentials: Record<string, string> | undefined,
+  req: Pick<RequestInternal, "body" | "query" | "headers" | "method">
+) => Promise<User | null>;
 
 // Mock Supabase client
 const mockSingle = vi.fn();
@@ -13,7 +22,6 @@ vi.mock("@/lib/supabase/server", () => ({
   })),
 }));
 
-// Mock logger to prevent console noise
 vi.mock("@/lib/logger", () => ({
   logger: {
     debug: vi.fn(),
@@ -24,26 +32,35 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { authOptions } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+
+type AuthRequest = Pick<RequestInternal, "body" | "query" | "headers" | "method">;
 
 function getAuthorize() {
-  const credentialsProvider = authOptions.providers[0] as any;
-  return credentialsProvider.options.authorize;
+  const provider = authOptions.providers[0] as CredentialsConfig;
+  return (provider.options as { authorize: AuthorizeFn }).authorize;
 }
 
 describe("authorize", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // Re-establish chain (Vitest clearAllMocks resets implementations)
+    (createClient as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ from: mockFrom })
+    );
+    mockFrom.mockImplementation(() => ({ select: mockSelect }));
+    mockSelect.mockImplementation(() => ({ eq: mockEq }));
+    mockEq.mockImplementation(() => ({ single: mockSingle }));
   });
 
   it("returns null for missing credentials", async () => {
     const authorize = getAuthorize();
-    const result = await authorize({ email: null, password: null }, {} as any);
+    const result = await authorize({ email: null, password: null } as Record<string, string>, {} as AuthRequest);
     expect(result).toBeNull();
   });
 
   it("returns null for missing password", async () => {
     const authorize = getAuthorize();
-    const result = await authorize({ email: "test@example.com", password: null }, {} as any);
+    const result = await authorize({ email: "test@example.com", password: null } as Record<string, string>, {} as AuthRequest);
     expect(result).toBeNull();
   });
 
@@ -53,11 +70,10 @@ describe("authorize", () => {
     const authorize = getAuthorize();
     const result = await authorize(
       { email: "nonexistent@example.com", password: "password123" },
-      {} as any
+      {} as AuthRequest
     );
 
     expect(result).toBeNull();
-    // Verify dummy bcrypt was called (timing defense)
     expect(mockFrom).toHaveBeenCalledWith("users");
   });
 
@@ -76,7 +92,7 @@ describe("authorize", () => {
     const authorize = getAuthorize();
     const result = await authorize(
       { email: "test@example.com", password: "wrongpassword" },
-      {} as any
+      {} as AuthRequest
     );
 
     expect(result).toBeNull();
@@ -97,7 +113,7 @@ describe("authorize", () => {
     const authorize = getAuthorize();
     const result = await authorize(
       { email: "test@example.com", password: "correctpassword" },
-      {} as any
+      {} as AuthRequest
     );
 
     expect(result).toEqual({
@@ -113,7 +129,7 @@ describe("authorize", () => {
     const authorize = getAuthorize();
     await authorize(
       { email: "  Test@Example.COM  ", password: "password123" },
-      {} as any
+      {} as AuthRequest
     );
 
     expect(mockEq).toHaveBeenCalledWith("email", "test@example.com");
@@ -133,7 +149,7 @@ describe("authorize", () => {
     const authorize = getAuthorize();
     const result = await authorize(
       { email: "test@example.com", password: "password123" },
-      {} as any
+      {} as AuthRequest
     );
 
     expect(result).toBeNull();
@@ -148,21 +164,21 @@ describe("authorize", () => {
     const authorize = getAuthorize();
     const result = await authorize(
       { email: "test@example.com", password: "password123" },
-      {} as any
+      {} as AuthRequest
     );
 
     expect(result).toBeNull();
   });
 
   it("returns null on Supabase connection error", async () => {
-    mockFrom.mockImplementation(() => {
+    (createClient as ReturnType<typeof vi.fn>).mockImplementation(() => {
       throw new Error("Connection refused");
     });
 
     const authorize = getAuthorize();
     const result = await authorize(
       { email: "test@example.com", password: "password123" },
-      {} as any
+      {} as AuthRequest
     );
 
     expect(result).toBeNull();
@@ -171,39 +187,82 @@ describe("authorize", () => {
 
 describe("callbacks", () => {
   it("jwt callback sets userId from user.id", async () => {
-    const jwtCallback = authOptions.callbacks?.jwt as any;
+    const jwtCallback = authOptions.callbacks!.jwt as (params: {
+      token: JWT;
+      user: User | null;
+      account: null;
+      profile: undefined;
+      trigger: "signIn";
+    }) => JWT;
+
     const result = await jwtCallback({
-      token: { sub: "old-token" },
-      user: { id: "user-123", email: "test@example.com" },
+      token: { sub: "old-token" } as JWT,
+      user: { id: "user-123", email: "test@example.com", name: null, image: null },
+      account: null,
+      profile: undefined,
+      trigger: "signIn",
     });
+
     expect(result.userId).toBe("user-123");
   });
 
   it("jwt callback keeps existing token when no user", async () => {
-    const jwtCallback = authOptions.callbacks?.jwt as any;
+    const jwtCallback = authOptions.callbacks!.jwt as (params: {
+      token: JWT;
+      user: User | null;
+      account: null;
+      profile: undefined;
+      trigger: "signIn";
+    }) => JWT;
+
     const result = await jwtCallback({
-      token: { sub: "old-token", userId: "existing" },
+      token: { sub: "old-token", userId: "existing" } as JWT,
       user: null,
+      account: null,
+      profile: undefined,
+      trigger: "signIn",
     });
+
     expect(result.userId).toBe("existing");
   });
 
   it("session callback sets user.id from token.userId", async () => {
-    const sessionCallback = authOptions.callbacks?.session as any;
+    const sessionCallback = authOptions.callbacks!.session as (params: {
+      session: Session;
+      token: JWT;
+      user: User;
+      newSession: null;
+      trigger: "update";
+    }) => Session;
+
     const result = await sessionCallback({
-      session: { user: { name: "Test" } },
-      token: { userId: "user-123" },
+      session: { user: { name: "Test", email: null, image: null }, expires: "2099-01-01" },
+      token: { userId: "user-123" } as JWT,
+      user: { id: "u1", email: "test@test.com", name: null, image: null },
+      newSession: null,
+      trigger: "update",
     });
+
     expect(result.user.id).toBe("user-123");
   });
 
   it("session callback handles missing session.user", async () => {
-    const sessionCallback = authOptions.callbacks?.session as any;
+    const sessionCallback = authOptions.callbacks!.session as (params: {
+      session: Session;
+      token: JWT;
+      user: User;
+      newSession: null;
+      trigger: "update";
+    }) => Session;
+
     const result = await sessionCallback({
-      session: {} as any,
-      token: { userId: "user-123" },
+      session: { expires: "2099-01-01" } as Session,
+      token: { userId: "user-123" } as JWT,
+      user: { id: "u1", email: "test@test.com", name: null, image: null },
+      newSession: null,
+      trigger: "update",
     });
-    // Should not crash, returns session without setting user.id
+
     expect(result).toBeDefined();
   });
 });
