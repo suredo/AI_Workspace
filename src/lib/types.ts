@@ -35,3 +35,28 @@ export interface InvitationWithDetails extends Invitation {
   workspace_name: string;
   created_by_name: string;
 }
+
+export interface Message {
+  id: string;
+  workspace_id: string;
+  sender_id: string | null;
+  role: "user" | "assistant" | "system";
+  content: string;
+  model: string | null;
+  cost_cents: number | null;
+  created_at: string;
+}
+
+export interface WorkspaceConfig {
+  llm_provider: string;
+  llm_base_url: string;
+  llm_api_key_set: boolean;
+  llm_model: string;
+}
+
+export interface WorkspaceWithConfig extends Workspace {
+  llm_provider: string;
+  llm_base_url: string;
+  llm_api_key_encrypted: string | null;
+  llm_model: string;
+}
