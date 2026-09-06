@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { EMAIL_REGEX, MIN_PASSWORD_LENGTH, MAX_DISPLAY_NAME_LENGTH } from "@/lib/validation";
 
 interface FormErrors {
@@ -36,8 +37,10 @@ function validateForm(email: string, password: string, displayName: string): For
   return errors;
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -82,7 +85,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/login?registered=true");
+      router.push(`/login?registered=true&callbackUrl=${encodeURIComponent(callbackUrl)}`);
     } catch {
       setErrors({ submit: "Network error. Please try again." });
     } finally {
@@ -192,13 +195,21 @@ export default function RegisterPage() {
 
       <p className="mt-6 text-center text-sm text-gray-600">
         Already have an account?{" "}
-        <a
-          href="/login"
+        <Link
+          href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
           className="font-medium text-blue-600 hover:text-blue-500"
         >
           Sign in
-        </a>
+        </Link>
       </p>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }

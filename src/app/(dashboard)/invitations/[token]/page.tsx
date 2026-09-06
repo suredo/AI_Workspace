@@ -152,7 +152,7 @@ export default function InvitationAcceptPage() {
             </Link>
           </div>
           <p className="pt-2">
-            <Link href="/register" className="text-sm text-blue-600 hover:text-blue-500">
+            <Link href={`/register?callbackUrl=${encodeURIComponent(`/invitations/${token}`)}`} className="text-sm text-blue-600 hover:text-blue-500">
               Create an account
             </Link>
           </p>
