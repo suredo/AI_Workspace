@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createClient } from "@/lib/supabase/server";
-import { BCRYPT_ROUNDS } from "@/lib/auth";
+import { BCRYPT_ROUNDS } from "@/lib/auth-helpers";
 import { logger } from "@/lib/logger";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
