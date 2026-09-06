@@ -11,11 +11,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@auth/core": "^0.41.3",
     "@supabase/ssr": "^0.12.6",
     "@supabase/supabase-js": "^2.115.0",
     "bcryptjs": "^3.0.3",
     "next": "16.3.4",
-    "next-auth": "^4.24.15",
+    "next-auth": "^5.0.0-beta.32",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -28,6 +29,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "supabase": "^2.116.0",
     "tailwindcss": "^4",
     "tiktoken": "^1.0.22",
     "typescript": "^5",
