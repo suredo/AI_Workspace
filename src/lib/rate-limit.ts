@@ -12,6 +12,8 @@
 //   - Rate limit headers on all auth responses (X-RateLimit-Remaining, etc.)
 //   - Configurable limits via environment variables
 // =============================================================================
+
+interface RateLimitEntry {
   count: number;
   resetAt: number;
 }
