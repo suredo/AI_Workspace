@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
 import { encrypt } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import type { WorkspaceConfig } from "@/lib/types";
+import { requireWorkspaceOwner, errorResponse } from "@/lib/api/workspace-auth";
 
 const CTX = "api:workspaces:config";
 
@@ -13,33 +12,14 @@ export async function GET(
 ) {
   logger.info(CTX, "GET request received");
 
-  const session = await auth();
-  if (!session?.user?.id) {
-    logger.warn(CTX, "Unauthorized");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = session.user.id;
-
   const { id } = await params;
 
-  const supabase = await createClient();
-
-  const { data: membership, error: membershipError } = await supabase
-    .from("workspace_members")
-    .select("role")
-    .eq("workspace_id", id)
-    .eq("user_id", userId)
-    .single();
-
-  if (membershipError || !membership) {
-    logger.warn(CTX, "Workspace not found or not a member", { workspaceId: id });
-    return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+  const authResult = await requireWorkspaceOwner(id);
+  if ("error" in authResult) {
+    return errorResponse(authResult);
   }
 
-  if (membership.role !== "owner") {
-    logger.warn(CTX, "Not owner", { workspaceId: id, role: membership.role });
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const { supabase } = authResult;
 
   const { data: workspace, error: workspaceError } = await supabase
     .from("workspaces")
@@ -74,33 +54,14 @@ export async function PUT(
 ) {
   logger.info(CTX, "PUT request received");
 
-  const session = await auth();
-  if (!session?.user?.id) {
-    logger.warn(CTX, "Unauthorized");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = session.user.id;
-
   const { id } = await params;
 
-  const supabase = await createClient();
-
-  const { data: membership, error: membershipError } = await supabase
-    .from("workspace_members")
-    .select("role")
-    .eq("workspace_id", id)
-    .eq("user_id", userId)
-    .single();
-
-  if (membershipError || !membership) {
-    logger.warn(CTX, "Workspace not found or not a member", { workspaceId: id });
-    return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+  const authResult = await requireWorkspaceOwner(id);
+  if ("error" in authResult) {
+    return errorResponse(authResult);
   }
 
-  if (membership.role !== "owner") {
-    logger.warn(CTX, "Not owner", { workspaceId: id, role: membership.role });
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const { supabase } = authResult;
 
   let body: {
     llm_provider?: string;
@@ -120,6 +81,15 @@ export async function PUT(
   if (!llm_provider || !llm_base_url || !llm_model) {
     return NextResponse.json(
       { error: "llm_provider, llm_base_url, and llm_model are required" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    new URL(llm_base_url);
+  } catch {
+    return NextResponse.json(
+      { error: "llm_base_url must be a valid URL" },
       { status: 400 }
     );
   }

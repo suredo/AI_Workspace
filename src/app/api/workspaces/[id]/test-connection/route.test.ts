@@ -200,7 +200,9 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toBe("AI provider not configured: no API key set");
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe("not_configured");
+    expect(body.error.message).toBe("AI provider not configured: no API key set");
   });
 
   it("returns 502 when provider authentication fails", async () => {
@@ -352,6 +354,8 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.error).toBe("Failed to initialize provider");
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe("provider_init_failed");
+    expect(body.error.message).toBe("Failed to initialize provider");
   });
 });

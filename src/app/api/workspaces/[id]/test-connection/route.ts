@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
 import { getProvider } from "@/lib/providers";
 import { logger } from "@/lib/logger";
+import { requireWorkspaceOwner, errorResponse } from "@/lib/api/workspace-auth";
 
 const CTX = "api:workspaces:test-connection";
 
@@ -12,33 +11,14 @@ export async function POST(
 ) {
   logger.info(CTX, "POST request received");
 
-  const session = await auth();
-  if (!session?.user?.id) {
-    logger.warn(CTX, "Unauthorized");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = session.user.id;
-
   const { id } = await params;
 
-  const supabase = await createClient();
-
-  const { data: membership, error: membershipError } = await supabase
-    .from("workspace_members")
-    .select("role")
-    .eq("workspace_id", id)
-    .eq("user_id", userId)
-    .single();
-
-  if (membershipError || !membership) {
-    logger.warn(CTX, "Workspace not found or not a member", { workspaceId: id });
-    return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+  const authResult = await requireWorkspaceOwner(id);
+  if ("error" in authResult) {
+    return errorResponse(authResult);
   }
 
-  if (membership.role !== "owner") {
-    logger.warn(CTX, "Not owner", { workspaceId: id, role: membership.role });
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const { supabase } = authResult;
 
   const { data: workspace, error: workspaceError } = await supabase
     .from("workspaces")
@@ -59,7 +39,10 @@ export async function POST(
   if (!workspace.llm_api_key_encrypted) {
     logger.warn(CTX, "No API key configured", { workspaceId: id });
     return NextResponse.json(
-      { error: "AI provider not configured: no API key set" },
+      {
+        success: false,
+        error: { code: "not_configured", message: "AI provider not configured: no API key set" },
+      },
       { status: 400 }
     );
   }
@@ -70,7 +53,7 @@ export async function POST(
   } catch (e) {
     logger.error(CTX, "Failed to create provider", { error: String(e) });
     return NextResponse.json(
-      { error: "Failed to initialize provider" },
+      { success: false, error: { code: "provider_init_failed", message: "Failed to initialize provider" } },
       { status: 500 }
     );
   }
