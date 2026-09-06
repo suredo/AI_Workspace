@@ -1,13 +1,31 @@
 "use client";
 
-import { Suspense, useActionState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useActionState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { loginAction } from "./actions";
 
 function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, undefined);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkSession() {
+      try {
+        const res = await fetch("/api/auth/session");
+        const data = await res.json();
+        if (!cancelled && data?.user) {
+          router.replace(callbackUrl);
+        }
+      } catch {
+        // Ignore errors — stay on login page
+      }
+    }
+    checkSession();
+    return () => { cancelled = true; };
+  }, [router, callbackUrl]);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
