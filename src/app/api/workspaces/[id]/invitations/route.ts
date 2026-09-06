@@ -103,10 +103,7 @@ export async function GET(
   // Fetch pending invitations (not accepted and not expired)
   const { data: invitations, error: inviteError } = await supabase
     .from("invitations")
-    .select(`
-      *,
-      users:created_by (display_name)
-    `)
+    .select("*")
     .eq("workspace_id", workspaceId)
     .is("accepted_at", null)
     .gt("expires_at", new Date().toISOString())
@@ -117,27 +114,31 @@ export async function GET(
     return NextResponse.json({ error: "Failed to fetch invitations" }, { status: 500 });
   }
 
-  const result = (invitations || []).map(
-    (inv: {
-      id: string;
-      workspace_id: string;
-      token: string;
-      created_by: string;
-      created_at: string;
-      expires_at: string;
-      accepted_at: string | null;
-      users: { display_name: string } | null;
-    }) => ({
-      id: inv.id,
-      workspace_id: inv.workspace_id,
-      token: inv.token,
-      created_by: inv.created_by,
-      created_at: inv.created_at,
-      expires_at: inv.expires_at,
-      accepted_at: inv.accepted_at,
-      created_by_name: inv.users?.display_name || "Unknown",
-    })
-  );
+  // Batch-fetch creator display names
+  const creatorIds = [...new Set((invitations || []).map((inv) => inv.created_by))];
+  const creatorMap: Record<string, string> = {};
+  if (creatorIds.length > 0) {
+    const { data: creators } = await supabase
+      .from("users")
+      .select("id, display_name")
+      .in("id", creatorIds);
+    if (creators) {
+      for (const c of creators) {
+        creatorMap[c.id] = c.display_name;
+      }
+    }
+  }
+
+  const result = (invitations || []).map((inv) => ({
+    id: inv.id,
+    workspace_id: inv.workspace_id,
+    token: inv.token,
+    created_by: inv.created_by,
+    created_at: inv.created_at,
+    expires_at: inv.expires_at,
+    accepted_at: inv.accepted_at,
+    created_by_name: creatorMap[inv.created_by] || "Unknown",
+  }));
 
   logger.info(CTX, "Invitations fetched", {
     workspaceId,
