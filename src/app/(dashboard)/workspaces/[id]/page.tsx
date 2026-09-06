@@ -14,6 +14,15 @@ interface Member {
   email: string;
 }
 
+interface Invitation {
+  id: string;
+  token: string;
+  created_by: string;
+  created_at: string;
+  expires_at: string;
+  created_by_name: string;
+}
+
 interface WorkspaceDetail {
   id: string;
   name: string;
@@ -42,6 +51,15 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function formatExpiry(dateStr: string): string {
+  const expires = new Date(dateStr);
+  const now = new Date();
+  const daysLeft = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysLeft <= 0) return "Expired";
+  if (daysLeft === 1) return "Expires tomorrow";
+  return `Expires in ${daysLeft} days`;
+}
+
 function roleBadgeColor(role: string): string {
   switch (role) {
     case "owner":
@@ -60,6 +78,16 @@ export default function WorkspaceDetailPage() {
   const [workspace, setWorkspace] = useState<WorkspaceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Invitation state
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
+  const [creatingInvite, setCreatingInvite] = useState(false);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+  const isOwner = workspace?.current_user_membership.role === "owner";
+  const isAdmin = workspace?.current_user_membership.role === "admin";
+  const canInvite = isOwner || isAdmin;
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +115,55 @@ export default function WorkspaceDetailPage() {
     return () => { cancelled = true; };
   }, [workspaceId]);
 
+  useEffect(() => {
+    if (!workspace || !canInvite) return;
+    let cancelled = false;
+    async function load() {
+      setInvitationsLoading(true);
+      try {
+        const res = await fetch(`/api/workspaces/${workspaceId}/invitations`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) {
+            setInvitations(data.invitations || []);
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setInvitationsLoading(false);
+        }
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [workspace, canInvite, workspaceId]);
+
+  async function handleCreateInvite() {
+    setCreatingInvite(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/invitations`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        // Refresh invitations list
+        const listRes = await fetch(`/api/workspaces/${workspaceId}/invitations`);
+        if (listRes.ok) {
+          const data = await listRes.json();
+          setInvitations(data.invitations || []);
+        }
+      }
+    } finally {
+      setCreatingInvite(false);
+    }
+  }
+
+  async function copyInviteLink(token: string) {
+    const url = `${window.location.origin}/invitations/${token}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -108,9 +185,6 @@ export default function WorkspaceDetailPage() {
     );
   }
 
-  const isOwner = workspace.current_user_membership.role === "owner";
-  const isAdmin = workspace.current_user_membership.role === "admin";
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -126,14 +200,6 @@ export default function WorkspaceDetailPage() {
                 Created {formatDate(workspace.created_at)} &middot; {workspace.members.length} {workspace.members.length === 1 ? "member" : "members"}
               </p>
             </div>
-            {(isOwner || isAdmin) && (
-              <Link
-                href={`/workspaces/${workspaceId}/settings`}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Settings
-              </Link>
-            )}
           </div>
         </div>
 
@@ -195,7 +261,7 @@ export default function WorkspaceDetailPage() {
                         <p className="text-sm font-medium text-gray-900">
                           {member.display_name}
                           {member.user_id === workspace.owner_id && (
-                            <span className="ml-1 text-xs text-gray-400">(you)</span>
+                            <span className="ml-1 text-xs text-gray-400">(owner)</span>
                           )}
                         </p>
                         <p className="text-xs text-gray-500">{member.email}</p>
@@ -213,6 +279,51 @@ export default function WorkspaceDetailPage() {
                 ))}
               </ul>
             </div>
+
+            {/* Invitations (owner/admin only) */}
+            {canInvite && (
+              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">Invitations</h2>
+                  <button
+                    onClick={handleCreateInvite}
+                    disabled={creatingInvite}
+                    className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {creatingInvite ? "Creating..." : "Invite"}
+                  </button>
+                </div>
+
+                {invitationsLoading ? (
+                  <p className="mt-4 text-sm text-gray-500">Loading...</p>
+                ) : invitations.length === 0 ? (
+                  <p className="mt-4 text-sm text-gray-500">No pending invitations</p>
+                ) : (
+                  <ul className="mt-4 space-y-3">
+                    {invitations.map((inv) => (
+                      <li key={inv.id} className="rounded-md bg-gray-50 p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-gray-600">
+                              Created by {inv.created_by_name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatExpiry(inv.expires_at)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => copyInviteLink(inv.token)}
+                            className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                          >
+                            {copiedToken === inv.token ? "Copied!" : "Copy link"}
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

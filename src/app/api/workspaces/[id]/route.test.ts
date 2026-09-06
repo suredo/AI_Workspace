@@ -68,7 +68,14 @@ describe("GET /api/workspaces/[id]", () => {
         role: "owner",
         daily_cap_cents: 500,
         joined_at: "2026-01-01T00:00:00Z",
-        users: { display_name: "Test User", email: "test@example.com" },
+      },
+    ];
+
+    const users = [
+      {
+        id: "user-123",
+        display_name: "Test User",
+        email: "test@example.com",
       },
     ];
 
@@ -95,6 +102,12 @@ describe("GET /api/workspaces/[id]", () => {
       .mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ data: members, error: null }),
+        }),
+      })
+      // Users fetch
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          in: vi.fn().mockResolvedValue({ data: users, error: null }),
         }),
       });
 

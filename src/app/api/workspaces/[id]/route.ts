@@ -49,17 +49,10 @@ export async function GET(
     return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
   }
 
-  // Fetch all members
+  // Fetch all members (no FK join — RLS blocks joined table access)
   const { data: members, error: membersError } = await supabase
     .from("workspace_members")
-    .select(`
-      id,
-      user_id,
-      role,
-      daily_cap_cents,
-      joined_at,
-      users:user_id (display_name, email)
-    `)
+    .select("id, user_id, role, daily_cap_cents, joined_at")
     .eq("workspace_id", id);
 
   if (membersError) {
@@ -67,27 +60,33 @@ export async function GET(
     return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
   }
 
+  // Batch-fetch user display names and emails
+  const userIds = [...new Set((members || []).map((m) => m.user_id))];
+  const userMap: Record<string, { display_name: string; email: string }> = {};
+  if (userIds.length > 0) {
+    const { data: users } = await supabase
+      .from("users")
+      .select("id, display_name, email")
+      .in("id", userIds);
+    if (users) {
+      for (const u of users) {
+        userMap[u.id] = { display_name: u.display_name, email: u.email };
+      }
+    }
+  }
+
   const result = {
     ...workspace,
     current_user_membership: membership,
-    members: (members || []).map(
-      (m: {
-        id: string;
-        user_id: string;
-        role: string;
-        daily_cap_cents: number;
-        joined_at: string;
-        users: { display_name: string; email: string }[] | null;
-      }) => ({
-        id: m.id,
-        user_id: m.user_id,
-        role: m.role,
-        daily_cap_cents: m.daily_cap_cents,
-        joined_at: m.joined_at,
-        display_name: m.users?.[0]?.display_name || "Unknown",
-        email: m.users?.[0]?.email || "",
-      })
-    ),
+    members: (members || []).map((m) => ({
+      id: m.id,
+      user_id: m.user_id,
+      role: m.role,
+      daily_cap_cents: m.daily_cap_cents,
+      joined_at: m.joined_at,
+      display_name: userMap[m.user_id]?.display_name || "Unknown",
+      email: userMap[m.user_id]?.email || "",
+    })),
   };
 
   logger.info(CTX, "Workspace fetched", {
