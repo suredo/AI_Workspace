@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isLoginAttempt =
-    pathname === "/api/auth/signin" || pathname === "/api/auth/callback/credentials";
+    pathname.startsWith("/api/auth/signin") || pathname === "/api/auth/callback/credentials";
 
   if (!isLoginAttempt) {
     return NextResponse.next();
