@@ -83,8 +83,10 @@ export const authOptions: NextAuthOptions = {
             // Timing-attack defense: run dummy bcrypt even when user is null
             try {
               await bcrypt.compare(credentials.password as string, DUMMY_BCRYPT_HASH);
-            } catch {
-              // Swallow — timing protection still applied
+            } catch (error) {
+              logger.warn(context, "Dummy bcrypt.compare failed", {
+                error: error instanceof Error ? error.message : String(error),
+              });
             }
             return null;
           }
