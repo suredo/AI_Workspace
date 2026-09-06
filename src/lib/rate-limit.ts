@@ -1,4 +1,17 @@
-interface RateLimitEntry {
+// =============================================================================
+// Rate Limiter — Minimal MVP
+// =============================================================================
+// Current implementation: in-memory, single-process, IP-based.
+//
+// Future improvements (tracked in GitHub Issue #TODO):
+//   - Redis-backed store for multi-instance / serverless deployments
+//   - Per-user rate limiting (requires auth lookup, add after login flow)
+//   - Sliding window algorithm instead of fixed window
+//   - Exponential backoff on repeated violations
+//   - Account lockout after N failed attempts (PRD does not require this yet)
+//   - Rate limit headers on all auth responses (X-RateLimit-Remaining, etc.)
+//   - Configurable limits via environment variables
+// =============================================================================
   count: number;
   resetAt: number;
 }
