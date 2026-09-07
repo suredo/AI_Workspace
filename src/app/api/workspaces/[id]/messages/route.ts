@@ -416,30 +416,39 @@ export async function POST(
   }
 
   type HistoryRow = { role: string; content: string; sender_id: string | null };
-  const historyRows = ((history || []).reverse() as HistoryRow[]).filter(
-    (m) => m.role === "user" || m.role === "assistant"
-  );
-  const historyNames = await fetchSenderNames(supabase, historyRows);
-  // The just-inserted user message is the newest row, so history already
-  // carries the current sender's id — no extra user lookup needed.
-  const currentSenderName = historyNames[userId] ?? null;
+  let llmMessages: LLMMessage[];
+  if (historyError || !history) {
+    // No context available: send the bare base prompt without identity
+    // instructions, since no prefixed user messages accompany it.
+    llmMessages = [
+      { role: "system", content: workspace.system_prompt as string },
+    ];
+  } else {
+    const historyRows = (history.reverse() as HistoryRow[]).filter(
+      (m) => m.role === "user" || m.role === "assistant"
+    );
+    const historyNames = await fetchSenderNames(supabase, historyRows);
+    // The just-inserted user message is the newest row, so history already
+    // carries the current sender's id — no extra user lookup needed.
+    const currentSenderName = historyNames[userId] ?? null;
 
-  const llmMessages: LLMMessage[] = [
-    {
-      role: "system",
-      content: buildSystemPrompt(
-        workspace.system_prompt as string,
-        currentSenderName
+    llmMessages = [
+      {
+        role: "system",
+        content: buildSystemPrompt(
+          workspace.system_prompt as string,
+          currentSenderName
+        ),
+      },
+      ...historyRows.map((m) =>
+        formatMessageForLLM(
+          m.role,
+          m.content,
+          m.sender_id ? (historyNames[m.sender_id] ?? null) : null
+        )
       ),
-    },
-    ...historyRows.map((m) =>
-      formatMessageForLLM(
-        m.role,
-        m.content,
-        m.sender_id ? (historyNames[m.sender_id] ?? null) : null
-      )
-    ),
-  ];
+    ];
+  }
 
   const model = workspace.llm_model as string;
   const encoder = new TextEncoder();

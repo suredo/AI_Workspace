@@ -16,10 +16,21 @@ export default function ChatThread({
   currentUserId: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Sticky-scroll: only yank to the bottom when the user is already near
+  // it, so background polls don't interrupt someone reading history.
+  const stickToBottomRef = useRef(true);
+
+  function handleScroll() {
+    const el = containerRef.current;
+    if (!el) return;
+    const distanceFromBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 80;
+  }
 
   useEffect(() => {
     const el = containerRef.current;
-    if (el) {
+    if (el && stickToBottomRef.current) {
       el.scrollTop = el.scrollHeight;
     }
   }, [messages]);
@@ -36,7 +47,11 @@ export default function ChatThread({
   }
 
   return (
-    <div ref={containerRef} className="h-96 space-y-4 overflow-y-auto px-6 py-4">
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="h-96 space-y-4 overflow-y-auto px-6 py-4"
+    >
       {messages.map((message) => (
         <MessageBubble
           key={message.id}

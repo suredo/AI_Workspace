@@ -98,7 +98,9 @@ export default function ChatPanel({
     const optimistic: MessageWithSender = {
       id: `temp-user-${Date.now()}`,
       workspace_id: workspaceId,
-      sender_id: "temp",
+      // Attribute to the current user so the bubble aligns with their own
+      // messages until the server state reconciles after streaming.
+      sender_id: currentUserId,
       role: "user",
       content,
       model: null,
@@ -207,9 +209,10 @@ export default function ChatPanel({
             );
           } else if (currentEvent === "error") {
             throw new Error(data.message || "AI request failed");
-          } else if (currentEvent === "done") {
-            setStreamingMessageId(data.messageId ?? null);
           }
+          // The done event carries the saved message id, but reconciliation
+          // happens via refresh() below, so the streaming cursor stays on
+          // the placeholder until the real messages arrive.
         }
       }
 
