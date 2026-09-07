@@ -95,9 +95,6 @@ export default function WorkspaceDetailPage() {
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-2">
           <div className="min-w-0 pl-10 md:pl-0">
             <h1 className="truncate text-lg font-semibold text-gray-900 dark:text-gray-100">{workspace.name}</h1>
-            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-              {workspace.members.length} {workspace.members.length === 1 ? "member" : "members"}
-            </p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <button

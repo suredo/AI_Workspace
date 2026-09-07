@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, Plus, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import type { WorkspaceWithMembers } from "@/lib/types";
 import { signOutAction } from "@/app/(dashboard)/actions";
@@ -17,6 +17,7 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [workspaces, setWorkspaces] = useState<WorkspaceWithMembers[]>([]);
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
 
   const activeId = workspaceIdFromPath(pathname);
 
@@ -38,7 +39,14 @@ export default function AppSidebar() {
     return () => {
       cancelled = true;
     };
-  }, []);
+    // Refetch on navigation: the layout persists across client-side route
+    // changes, so a freshly created workspace would otherwise stay invisible.
+  }, [pathname]);
+
+  useEffect(() => {
+    // DOM sync only (no setState): move focus into the drawer when it opens.
+    if (mobileOpen) drawerCloseRef.current?.focus();
+  }, [mobileOpen]);
 
   function closeMobile() {
     setMobileOpen(false);
@@ -65,7 +73,7 @@ export default function AppSidebar() {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col border-r border-gray-200 bg-white transition-transform dark:border-gray-800 dark:bg-gray-900 md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] shrink-0 flex-col border-r border-gray-200 bg-white transition-transform dark:border-gray-800 dark:bg-gray-900 md:static md:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -79,6 +87,7 @@ export default function AppSidebar() {
           </Link>
           <button
             type="button"
+            ref={drawerCloseRef}
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
             className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:hidden dark:text-gray-400 dark:hover:bg-gray-800"
@@ -86,20 +95,17 @@ export default function AppSidebar() {
             <X className="h-5 w-5" aria-hidden />
           </button>
         </div>
-        <div className="flex items-center justify-between px-4 py-2">
+        <div className="px-4 py-2">
           <span className="text-xs font-semibold tracking-wider text-gray-500 uppercase dark:text-gray-400">
             Workspaces
           </span>
-          <Link
-            href="/dashboard"
-            aria-label="New workspace"
-            title="New workspace"
-            className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-800"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-          </Link>
         </div>
         <nav aria-label="Workspaces" className="flex-1 space-y-1 overflow-y-auto px-2">
+          {workspaces.length === 0 && (
+            <p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+              No workspaces yet
+            </p>
+          )}
           {workspaces.map((workspace) => {
             const active = workspace.id === activeId;
             return (

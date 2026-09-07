@@ -424,7 +424,7 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <Link href={`/workspaces/${workspaceId}`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 block">
+        <Link href={`/workspaces/${workspaceId}`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 block pl-10 md:pl-0">
           ← Back to Workspace
         </Link>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings: {workspace.name}</h1>
