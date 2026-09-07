@@ -89,6 +89,9 @@ export default function WorkspaceDetailPage() {
   const isOwner = workspace?.current_user_membership.role === "owner";
   const isAdmin = workspace?.current_user_membership.role === "admin";
   const canInvite = isOwner || isAdmin;
+  const currentUserId =
+    workspace?.members.find((m) => m.id === workspace.current_user_membership.id)
+      ?.user_id ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -221,7 +224,7 @@ export default function WorkspaceDetailPage() {
               <div className="border-b border-gray-200 px-6 py-4">
                 <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
               </div>
-              <ChatPanel workspaceId={workspaceId} />
+              <ChatPanel workspaceId={workspaceId} currentUserId={currentUserId} />
             </div>
           </div>
 

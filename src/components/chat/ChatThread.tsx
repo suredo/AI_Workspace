@@ -8,10 +8,12 @@ export default function ChatThread({
   messages,
   streaming,
   streamingMessageId,
+  currentUserId,
 }: {
   messages: MessageWithSender[];
   streaming: boolean;
   streamingMessageId: string | null;
+  currentUserId: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +42,7 @@ export default function ChatThread({
           key={message.id}
           message={message}
           streaming={streaming && message.id === streamingMessageId}
+          isOwn={message.sender_id !== null && message.sender_id === currentUserId}
         />
       ))}
       {streaming && streamingMessageId === null && (

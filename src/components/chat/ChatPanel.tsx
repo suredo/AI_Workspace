@@ -15,7 +15,13 @@ interface Usage {
   remaining_cents: number;
 }
 
-export default function ChatPanel({ workspaceId }: { workspaceId: string }) {
+export default function ChatPanel({
+  workspaceId,
+  currentUserId,
+}: {
+  workspaceId: string;
+  currentUserId: string | null;
+}) {
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
@@ -245,6 +251,7 @@ export default function ChatPanel({ workspaceId }: { workspaceId: string }) {
         messages={messages}
         streaming={streaming}
         streamingMessageId={streamingMessageId}
+        currentUserId={currentUserId}
       />
       <div className="border-t border-gray-200 px-6 py-4">
         {sendError && (

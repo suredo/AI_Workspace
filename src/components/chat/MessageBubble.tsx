@@ -20,9 +20,11 @@ function formatTime(dateStr: string): string {
 export default function MessageBubble({
   message,
   streaming = false,
+  isOwn = false,
 }: {
   message: MessageWithSender;
   streaming?: boolean;
+  isOwn?: boolean;
 }) {
   const isUser = message.role === "user";
   const cost = formatCost(message.cost_cents);
@@ -32,30 +34,37 @@ export default function MessageBubble({
   const content = message.content.trim();
   const reasoning = message.reasoning?.trim() || null;
 
+  // Own messages sit on the right; teammates' on the left; AI gets its
+  // own tinted treatment so it never reads as another member.
+  const alignRight = isUser && isOwn;
+  const bubbleClass = !isUser
+    ? "border border-indigo-200 bg-indigo-50/60 text-gray-900"
+    : alignRight
+      ? "bg-blue-600 text-white"
+      : "border border-gray-200 bg-white text-gray-900";
+  const nameClass = !isUser
+    ? "text-indigo-900"
+    : alignRight
+      ? "text-blue-100"
+      : "text-gray-900";
+  const timeClass = !isUser
+    ? "text-indigo-300"
+    : alignRight
+      ? "text-blue-200"
+      : "text-gray-400";
+
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[80%] rounded-lg px-4 py-3 shadow-sm ${
-          isUser
-            ? "bg-blue-600 text-white"
-            : "border border-gray-200 bg-white text-gray-900"
-        }`}
-      >
+    <div className={`flex ${alignRight ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-[80%] rounded-lg px-4 py-3 shadow-sm ${bubbleClass}`}>
         <div
           className={`mb-1 flex items-baseline gap-2 ${
-            isUser ? "justify-end" : "justify-start"
+            alignRight ? "justify-end" : "justify-start"
           }`}
         >
-          <span
-            className={`text-xs font-semibold ${
-              isUser ? "text-blue-100" : "text-gray-700"
-            }`}
-          >
+          <span className={`text-xs font-semibold ${nameClass}`}>
             {isUser ? message.display_name : "AI Assistant"}
           </span>
-          <span
-            className={`text-[11px] ${isUser ? "text-blue-200" : "text-gray-400"}`}
-          >
+          <span className={`text-[11px] ${timeClass}`}>
             {formatTime(message.created_at)}
           </span>
         </div>
