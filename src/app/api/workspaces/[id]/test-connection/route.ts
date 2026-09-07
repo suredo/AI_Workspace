@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
-import { getProvider } from "@/lib/providers";
 import { logger } from "@/lib/logger";
 import { requireWorkspaceOwner, errorResponse } from "@/lib/api/workspace-auth";
+import { decrypt } from "@/lib/encryption";
 
 const CTX = "api:workspaces:test-connection";
 
+interface TestConnectionBody {
+  llm_provider?: string;
+  llm_base_url?: string;
+  llm_api_key?: string;
+  llm_model?: string;
+}
+
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   logger.info(CTX, "POST request received");
@@ -20,6 +27,15 @@ export async function POST(
 
   const { supabase } = authResult;
 
+  // Parse request body for optional inline config (for testing before save)
+  let body: TestConnectionBody = {};
+  try {
+    body = await request.json();
+  } catch {
+    // Body is optional - fall back to DB config
+  }
+
+  // Fetch workspace config from DB (fallback)
   const { data: workspace, error: workspaceError } = await supabase
     .from("workspaces")
     .select("*")
@@ -36,7 +52,26 @@ export async function POST(
     );
   }
 
-  if (!workspace.llm_api_key_encrypted) {
+  // Merge inline config (from request body) with DB config
+  // Inline config takes precedence for testing
+  const providerName = body.llm_provider ?? workspace.llm_provider;
+  const baseUrl = body.llm_base_url ?? workspace.llm_base_url;
+  const model = body.llm_model ?? workspace.llm_model;
+
+  // Determine API key: use inline if provided, otherwise decrypt from DB
+  let apiKey: string;
+  if (body.llm_api_key && body.llm_api_key.trim()) {
+    apiKey = body.llm_api_key.trim();
+  } else if (workspace.llm_api_key_encrypted) {
+    try {
+      apiKey = decrypt(workspace.llm_api_key_encrypted);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: { code: "decrypt_failed", message: "Failed to decrypt API key" } },
+        { status: 500 }
+      );
+    }
+  } else {
     logger.warn(CTX, "No API key configured", { workspaceId: id });
     return NextResponse.json(
       {
@@ -47,9 +82,11 @@ export async function POST(
     );
   }
 
+  // Create provider with merged config
   let provider;
   try {
-    provider = getProvider(workspace);
+    const { OpenAICompatibleProvider } = await import("@/lib/providers/openai-compatible");
+    provider = new OpenAICompatibleProvider(providerName, baseUrl, apiKey);
   } catch (e) {
     logger.error(CTX, "Failed to create provider", { error: String(e) });
     return NextResponse.json(
@@ -60,7 +97,7 @@ export async function POST(
 
   const testRequest = {
     messages: [{ role: "user" as const, content: "Say hello in one word." }],
-    model: workspace.llm_model,
+    model,
     temperature: 0.1,
     maxTokens: 10,
   };
@@ -90,7 +127,7 @@ export async function POST(
   logger.info(CTX, "Test connection succeeded", { workspaceId: id });
   return NextResponse.json({
     success: true,
-    model: workspace.llm_model,
+    model,
     response,
   });
 }

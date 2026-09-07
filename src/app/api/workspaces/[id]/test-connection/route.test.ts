@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-import { getProvider } from "@/lib/providers";
 
 const mockAuth = vi.fn();
 vi.mock("@/lib/auth", () => ({
@@ -20,9 +19,24 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-vi.mock("@/lib/providers", () => ({
-  getProvider: vi.fn(),
+const mockDecrypt = vi.fn();
+vi.mock("@/lib/encryption", () => ({
+  decrypt: (...args: unknown[]) => mockDecrypt(...args),
 }));
+
+const mockRequireWorkspaceOwner = vi.fn();
+vi.mock("@/lib/api/workspace-auth", () => ({
+  requireWorkspaceOwner: (...args: unknown[]) => mockRequireWorkspaceOwner(...args),
+  errorResponse: (e: { error: string; status: number }) =>
+    new Response(JSON.stringify({ error: e.error }), {
+      status: e.status,
+      headers: { "Content-Type": "application/json" },
+    }),
+}));
+
+// Mock fetch globally
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
 function createMockSupabase() {
   return {
@@ -32,56 +46,111 @@ function createMockSupabase() {
 
 describe("POST /api/workspaces/[id]/test-connection", () => {
   let mockSupabase: ReturnType<typeof createMockSupabase>;
-  let mockFrom: Mock;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
+    mockFetch.mockReset();
 
     mockSupabase = createMockSupabase();
     mockCreateClient.mockResolvedValue(mockSupabase);
     mockAuth.mockResolvedValue({
       user: { id: "user-123", name: "Test User", email: "test@example.com" },
     });
+    mockRequireWorkspaceOwner.mockReset();
+    mockDecrypt.mockReset();
+
+    // Default mock for requireWorkspaceOwner - returns success for owner
+    mockRequireWorkspaceOwner.mockResolvedValue({
+      userId: "user-123",
+      membership: { role: "owner" },
+      supabase: mockSupabase,
+    });
+    mockDecrypt.mockImplementation(() => "test-api-key");
+
+    // Set up the supabase mock chain for workspace query
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "workspaces") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      };
+    });
   });
 
-  it("returns success with valid config", async () => {
-    const mockSendMessage = vi.fn().mockResolvedValue("Hello!");
-
-    vi.mocked(getProvider).mockReturnValue({
-      name: "groq",
-      sendMessage: mockSendMessage,
-      sendMessageStream: async function* () {
-        yield { type: "token", content: "Hello!" };
-        yield { type: "done" };
-      },
-    });
-
-    const workspaceConfig = {
+  function setupWorkspace(
+    membershipRole: "owner" | "admin" | "member" = "owner",
+    workspaceConfig: Record<string, unknown> = {
       llm_provider: "groq",
       llm_base_url: "https://api.groq.com/openai/v1",
       llm_api_key_encrypted: "encrypted-key",
       llm_model: "llama-3.3-70b-versatile",
-    };
+    }
+  ) {
+    mockRequireWorkspaceOwner.mockResolvedValue({
+      userId: "user-123",
+      membership: { role: membershipRole },
+      supabase: mockSupabase,
+    });
+    mockDecrypt.mockImplementation(() => "test-api-key");
 
-    mockFrom = vi.fn()
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
+    // Set up the supabase mock chain for workspace query
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "workspaces") {
+        return {
+          select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: { role: "owner" }, error: null }),
+              single: vi.fn().mockResolvedValue({ data: workspaceConfig, error: null }),
             }),
           }),
-        }),
-      })
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: workspaceConfig, error: null }),
-          }),
-        }),
-      });
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      };
+    });
+  }
 
-    mockSupabase.from = mockFrom;
+  function mockFetchSuccess(response: unknown) {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => response,
+    });
+  }
+
+  function mockFetchError(status: number, errorBody: unknown) {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status,
+      json: async () => errorBody,
+    });
+  }
+
+  it("returns success with valid config from DB", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "Hello!" }, finish_reason: "stop" }],
+      }),
+    });
+
+    setupWorkspace("owner", {
+      llm_provider: "groq",
+      llm_base_url: "https://api.groq.com/openai/v1",
+      llm_api_key_encrypted: "encrypted-key",
+      llm_model: "llama-3.3-70b-versatile",
+    });
 
     const { POST } = await import("@/app/api/workspaces/[id]/test-connection/route");
     const response = await POST(
@@ -94,16 +163,66 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
     expect(body.success).toBe(true);
     expect(body.model).toBe("llama-3.3-70b-versatile");
     expect(body.response).toBe("Hello!");
-    expect(mockSendMessage).toHaveBeenCalledWith(
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://api.groq.com/openai/v1/chat/completions",
       expect.objectContaining({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: "Say hello in one word." }],
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          Authorization: "Bearer test-api-key",
+        }),
+      })
+    );
+  });
+
+  it("returns success with inline API key from request body", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "Hello!" }, finish_reason: "stop" }],
+      }),
+    });
+
+    setupWorkspace("owner", {
+      llm_provider: "groq",
+      llm_base_url: "https://api.groq.com/openai/v1",
+      llm_api_key_encrypted: null,
+      llm_model: "llama-3.3-70b-versatile",
+    });
+
+    const { POST } = await import("@/app/api/workspaces/[id]/test-connection/route");
+    const response = await POST(
+      new Request("http://localhost:3000/api/workspaces/ws-123/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          llm_provider: "groq",
+          llm_base_url: "https://api.groq.com/openai/v1",
+          llm_api_key: "test-inline-key",
+          llm_model: "llama-3.3-70b-versatile",
+        }),
+      }),
+      { params: Promise.resolve({ id: "ws-123" }) }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.model).toBe("llama-3.3-70b-versatile");
+    expect(body.response).toBe("Hello!");
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://api.groq.com/openai/v1/chat/completions",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-inline-key",
+        }),
       })
     );
   });
 
   it("returns 401 when not authenticated", async () => {
     mockAuth.mockResolvedValue(null);
+    mockRequireWorkspaceOwner.mockResolvedValue({ error: "Unauthorized", status: 401 });
 
     const { POST } = await import("@/app/api/workspaces/[id]/test-connection/route");
     const response = await POST(
@@ -117,16 +236,7 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
   });
 
   it("returns 404 when not a member", async () => {
-    mockFrom = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: null, error: { message: "Not found" } }),
-          }),
-        }),
-      }),
-    });
-    mockSupabase.from = mockFrom;
+    mockRequireWorkspaceOwner.mockResolvedValue({ error: "Workspace not found", status: 404 });
 
     const { POST } = await import("@/app/api/workspaces/[id]/test-connection/route");
     const response = await POST(
@@ -140,18 +250,7 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
   });
 
   it("returns 403 when member but not owner", async () => {
-    mockFrom = vi.fn()
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: { role: "member" }, error: null }),
-            }),
-          }),
-        }),
-      });
-
-    mockSupabase.from = mockFrom;
+    mockRequireWorkspaceOwner.mockResolvedValue({ error: "Forbidden", status: 403 });
 
     const { POST } = await import("@/app/api/workspaces/[id]/test-connection/route");
     const response = await POST(
@@ -165,32 +264,12 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
   });
 
   it("returns 400 when no API key configured", async () => {
-    const workspaceConfig = {
+    setupWorkspace("owner", {
       llm_provider: "groq",
       llm_base_url: "https://api.groq.com/openai/v1",
       llm_api_key_encrypted: null,
       llm_model: "llama-3.3-70b-versatile",
-    };
-
-    mockFrom = vi.fn()
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: { role: "owner" }, error: null }),
-            }),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: workspaceConfig, error: null }),
-          }),
-        }),
-      });
-
-    mockSupabase.from = mockFrom;
+    });
 
     const { POST } = await import("@/app/api/workspaces/[id]/test-connection/route");
     const response = await POST(
@@ -206,46 +285,18 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
   });
 
   it("returns 502 when provider authentication fails", async () => {
-    const mockSendMessage = vi.fn().mockRejectedValue({
-      code: "auth_failure",
-      message: "Invalid API key",
-      retryable: false,
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: { message: "Unauthorized" } }),
     });
 
-    vi.mocked(getProvider).mockReturnValue({
-      name: "groq",
-      sendMessage: mockSendMessage,
-      sendMessageStream: async function* () {
-        yield { type: "error", error: { code: "auth_failure", message: "Invalid API key", retryable: false } };
-      },
-    });
-
-    const workspaceConfig = {
+    setupWorkspace("owner", {
       llm_provider: "groq",
       llm_base_url: "https://api.groq.com/openai/v1",
       llm_api_key_encrypted: "encrypted-key",
       llm_model: "llama-3.3-70b-versatile",
-    };
-
-    mockFrom = vi.fn()
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: { role: "owner" }, error: null }),
-            }),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: workspaceConfig, error: null }),
-          }),
-        }),
-      });
-
-    mockSupabase.from = mockFrom;
+    });
 
     const { POST } = await import("@/app/api/workspaces/[id]/test-connection/route");
     const response = await POST(
@@ -261,46 +312,18 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
   });
 
   it("returns 502 when provider rate limited", async () => {
-    const mockSendMessage = vi.fn().mockRejectedValue({
-      code: "rate_limit",
-      message: "Rate limit exceeded",
-      retryable: true,
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      json: async () => ({ error: { message: "Rate limit exceeded" } }),
     });
 
-    vi.mocked(getProvider).mockReturnValue({
-      name: "groq",
-      sendMessage: mockSendMessage,
-      sendMessageStream: async function* () {
-        yield { type: "error", error: { code: "rate_limit", message: "Rate limit exceeded", retryable: true } };
-      },
-    });
-
-    const workspaceConfig = {
+    setupWorkspace("owner", {
       llm_provider: "groq",
       llm_base_url: "https://api.groq.com/openai/v1",
       llm_api_key_encrypted: "encrypted-key",
       llm_model: "llama-3.3-70b-versatile",
-    };
-
-    mockFrom = vi.fn()
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: { role: "owner" }, error: null }),
-            }),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: workspaceConfig, error: null }),
-          }),
-        }),
-      });
-
-    mockSupabase.from = mockFrom;
+    });
 
     const { POST } = await import("@/app/api/workspaces/[id]/test-connection/route");
     const response = await POST(
@@ -314,37 +337,17 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
     expect(body.error.code).toBe("rate_limit");
   });
 
-  it("returns 500 when provider creation fails", async () => {
-    vi.mocked(getProvider).mockImplementation(() => {
-      throw new Error("Failed to decrypt API key");
-    });
-
-    const workspaceConfig = {
+  it("returns 500 when decrypt fails", async () => {
+    setupWorkspace("owner", {
       llm_provider: "groq",
       llm_base_url: "https://api.groq.com/openai/v1",
       llm_api_key_encrypted: "encrypted-key",
       llm_model: "llama-3.3-70b-versatile",
-    };
+    });
 
-    mockFrom = vi.fn()
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: { role: "owner" }, error: null }),
-            }),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: workspaceConfig, error: null }),
-          }),
-        }),
-      });
-
-    mockSupabase.from = mockFrom;
+    mockDecrypt.mockImplementation(() => {
+      throw new Error("Failed to decrypt");
+    });
 
     const { POST } = await import("@/app/api/workspaces/[id]/test-connection/route");
     const response = await POST(
@@ -355,7 +358,6 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
 
     expect(response.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(body.error.code).toBe("provider_init_failed");
-    expect(body.error.message).toBe("Failed to initialize provider");
+    expect(body.error.code).toBe("decrypt_failed");
   });
 });
