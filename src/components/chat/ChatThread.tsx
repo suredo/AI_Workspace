@@ -37,9 +37,9 @@ export default function ChatThread({
 
   if (messages.length === 0 && !streaming) {
     return (
-      <div className="flex h-96 items-center justify-center text-gray-400">
+      <div className="flex h-96 items-center justify-center text-gray-400 dark:text-gray-500">
         <div className="text-center">
-          <p className="text-sm font-medium text-gray-500">No messages yet</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No messages yet</p>
           <p className="mt-1 text-sm">Start the conversation below.</p>
         </div>
       </div>
@@ -62,7 +62,7 @@ export default function ChatThread({
       ))}
       {streaming && streamingMessageId === null && (
         <div className="flex justify-start">
-          <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-500 dark:text-gray-400 shadow-sm">
             <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" />{" "}
             <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />{" "}
             <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
