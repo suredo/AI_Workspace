@@ -23,14 +23,6 @@ interface WorkspaceDetail {
   members: Member[];
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 export default function WorkspaceDetailPage() {
   const params = useParams();
   const workspaceId = params.id as string;
@@ -97,60 +89,43 @@ export default function WorkspaceDetailPage() {
   }
 
   return (
-    <div>
-<div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <Link href="/dashboard" className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-                  &larr; Back to Dashboard
-                </Link>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSidebarOpen(true)}
-                  className="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                  <Users className="h-4 w-4" aria-hidden />
-                  Members ({workspace.members.length})
-                </button>
-                {canInvite && (
-                  <Link
-                    href={`/workspaces/${workspaceId}/settings`}
-                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                  >
-                    Settings
-                  </Link>
-                )}
-              </div>
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{workspace.name}</h1>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  Created {formatDate(workspace.created_at)} &middot; {workspace.members.length} {workspace.members.length === 1 ? "member" : "members"}
-                </p>
-              </div>
-            </div>
+    <div className="flex h-dvh flex-col">
+      {/* Slim header: title left, controls right */}
+      <div className="shrink-0 border-b border-gray-200 dark:border-gray-800 px-4 py-3 md:px-6">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-2">
+          <div className="min-w-0 pl-10 md:pl-0">
+            <h1 className="truncate text-lg font-semibold text-gray-900 dark:text-gray-100">{workspace.name}</h1>
+            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+              {workspace.members.length} {workspace.members.length === 1 ? "member" : "members"}
+            </p>
           </div>
-
-        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
-          <div className="flex h-[calc(100dvh-19rem)] min-h-[28rem] flex-col overflow-hidden">
-            <div className="shrink-0 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Chat</h2>
-            </div>
-            <ChatPanel workspaceId={workspaceId} currentUserId={currentUserId} />
+          <div className="flex shrink-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <Users className="h-4 w-4" aria-hidden />
+              Members ({workspace.members.length})
+            </button>
+            {canInvite && (
+              <Link
+                href={`/workspaces/${workspaceId}/settings`}
+                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                Settings
+              </Link>
+            )}
           </div>
         </div>
-        <MembersSidebar
-          members={workspace.members}
-          ownerId={workspace.owner_id}
-          open={sidebarOpen}
-          onClose={closeSidebar}
-        />
       </div>
+      <ChatPanel workspaceId={workspaceId} currentUserId={currentUserId} />
+      <MembersSidebar
+        members={workspace.members}
+        ownerId={workspace.owner_id}
+        open={sidebarOpen}
+        onClose={closeSidebar}
+      />
     </div>
   );
 }

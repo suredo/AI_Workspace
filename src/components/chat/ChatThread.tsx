@@ -50,8 +50,9 @@ export default function ChatThread({
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4"
+      className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6"
     >
+      <div className="mx-auto w-full max-w-3xl space-y-4">
       {messages.map((message) => (
         <MessageBubble
           key={message.id}
@@ -69,6 +70,7 @@ export default function ChatThread({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
