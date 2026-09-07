@@ -47,6 +47,10 @@ export interface Message {
   created_at: string;
 }
 
+export interface MessageWithSender extends Message {
+  display_name: string;
+}
+
 export interface WorkspaceConfig {
   llm_provider: string;
   llm_base_url: string;
