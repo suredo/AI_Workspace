@@ -443,14 +443,37 @@ describe("POST /api/workspaces/[id]/messages", () => {
     expect(text).not.toContain("event: done");
   });
 
-  it("strips thinking blocks from streamed content", async () => {
-    setupSuccessFlow({
-      stream: async function* () {
-        yield { type: "token", content: "<think>\nsecret reasoning\n</think>\n" };
+  it("separates thinking into reasoning events and saves it", async () => {
+    let savedReasoning: unknown;
+    let savedContent: unknown;
+    const insertAi = vi.fn().mockImplementation((row: Record<string, unknown>) => {
+      savedReasoning = row.reasoning;
+      savedContent = row.content;
+      return {
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: { id: "msg-ai" }, error: null }),
+        }),
+      };
+    });
+
+    mockGetProvider.mockReturnValue({
+      name: "groq",
+      sendMessage: vi.fn(),
+      sendMessageStream: async function* () {
+        yield { type: "token", content: "<think>secret reasoning</think>" };
         yield { type: "token", content: "Hello!" };
         yield { type: "done" };
       },
     });
+
+    mockFrom = vi.fn()
+      .mockReturnValueOnce(mockSingle(TEST_MEMBERSHIP, null))
+      .mockReturnValueOnce(mockSingleEq(TEST_WORKSPACE, null))
+      .mockReturnValueOnce(mockSpend([{ cost_cents: 0 }]))
+      .mockReturnValueOnce(mockInsertUser())
+      .mockReturnValueOnce(mockHistory([{ role: "user", content: "Hi" }]))
+      .mockReturnValueOnce({ insert: insertAi });
+    mockSupabase.from = mockFrom;
 
     const { POST } = await import("@/app/api/workspaces/[id]/messages/route");
     const response = await POST(
@@ -463,10 +486,16 @@ describe("POST /api/workspaces/[id]/messages", () => {
     );
 
     const text = await readStream(response);
-    expect(text).not.toContain("secret reasoning");
+    // Thinking travels in reasoning events, never in token payloads.
+    expect(text).toContain("event: reasoning");
+    expect(text).toContain("secret reasoning");
+    expect(text).not.toContain('event: token\ndata: {"content":"secret');
     expect(text).not.toContain("<think>");
     expect(text).toContain('"content":"Hello!"');
     expect(text).toContain("event: done");
+    // Answer stays clean and reasoning is persisted separately.
+    expect(savedContent).toBe("Hello!");
+    expect(savedReasoning).toBe("secret reasoning");
   });
 });
 
@@ -476,10 +505,11 @@ describe("createThinkingFilter", () => {
       "@/app/api/workspaces/[id]/messages/route"
     );
     const filter = createThinkingFilter();
-    expect(filter("Hello <think>reasoning</think> world")).toBe(
-      "Hello  world"
-    );
-    expect(filter("", true)).toBe("");
+    expect(filter("Hello <think>reasoning</think> world")).toEqual({
+      visible: "Hello  world",
+      thinking: "reasoning",
+    });
+    expect(filter("", true)).toEqual({ visible: "", thinking: "" });
   });
 
   it("handles tags split across chunks", async () => {
@@ -487,9 +517,12 @@ describe("createThinkingFilter", () => {
       "@/app/api/workspaces/[id]/messages/route"
     );
     const filter = createThinkingFilter();
-    expect(filter("<th")).toBe("");
-    expect(filter("ink>hidden</th")).toBe("");
-    expect(filter("ink>Hi", true)).toBe("Hi");
+    expect(filter("<th")).toEqual({ visible: "", thinking: "" });
+    expect(filter("ink>hidden</th")).toEqual({ visible: "", thinking: "" });
+    expect(filter("ink>Hi", true)).toEqual({
+      visible: "Hi",
+      thinking: "hidden",
+    });
   });
 
   it("handles case-insensitive and thinking variants", async () => {
@@ -497,9 +530,10 @@ describe("createThinkingFilter", () => {
       "@/app/api/workspaces/[id]/messages/route"
     );
     const filter = createThinkingFilter();
-    expect(filter("<THINKING>deep thought</THINKING>Answer", true)).toBe(
-      "Answer"
-    );
+    expect(filter("<THINKING>deep thought</THINKING>Answer", true)).toEqual({
+      visible: "Answer",
+      thinking: "deep thought",
+    });
   });
 
   it("drops unclosed blocks at flush", async () => {
@@ -507,7 +541,10 @@ describe("createThinkingFilter", () => {
       "@/app/api/workspaces/[id]/messages/route"
     );
     const filter = createThinkingFilter();
-    expect(filter("<think>never closed", true)).toBe("");
+    expect(filter("<think>never closed", true)).toEqual({
+      visible: "",
+      thinking: "never closed",
+    });
   });
 
   it("preserves literal angle brackets and drops stray closes", async () => {
@@ -515,8 +552,9 @@ describe("createThinkingFilter", () => {
       "@/app/api/workspaces/[id]/messages/route"
     );
     const filter = createThinkingFilter();
-    expect(filter("2 < 3 and a </think> stray", true)).toBe(
-      "2 < 3 and a  stray"
-    );
+    expect(filter("2 < 3 and a </think> stray", true)).toEqual({
+      visible: "2 < 3 and a  stray",
+      thinking: "",
+    });
   });
 });

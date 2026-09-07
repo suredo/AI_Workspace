@@ -97,6 +97,7 @@ export default function ChatPanel({ workspaceId }: { workspaceId: string }) {
       content,
       model: null,
       cost_cents: null,
+      reasoning: null,
       created_at: new Date().toISOString(),
       display_name: "You",
     };
@@ -143,6 +144,7 @@ export default function ChatPanel({ workspaceId }: { workspaceId: string }) {
       content: "",
       model: null,
       cost_cents: null,
+      reasoning: "",
       created_at: new Date().toISOString(),
       display_name: "AI Assistant",
     };
@@ -185,6 +187,15 @@ export default function ChatPanel({ workspaceId }: { workspaceId: string }) {
               prev.map((m) =>
                 m.id === STREAMING_PLACEHOLDER_ID
                   ? { ...m, content: m.content + token }
+                  : m
+              )
+            );
+          } else if (currentEvent === "reasoning" && data.content) {
+            const reasoning = data.content;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === STREAMING_PLACEHOLDER_ID
+                  ? { ...m, reasoning: (m.reasoning || "") + reasoning }
                   : m
               )
             );

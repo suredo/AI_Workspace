@@ -36,18 +36,29 @@ const PARTIAL_TAG_RE = /^<\/?[a-z]*$/i;
 // closing tag split across chunks can still be recognized.
 const MAX_PARTIAL_TAG_HOLD = "</thinking>".length - 1;
 
+export interface ThinkingFilterResult {
+  /** Text safe to display and save as the answer. */
+  visible: string;
+  /** Thinking-trace text, for the collapsible reasoning view. */
+  thinking: string;
+}
+
 /**
- * Stateful filter removing <think>/<thinking> blocks emitted by reasoning
- * models (Qwen, DeepSeek R1, and similar) from streamed text. Handles tags
- * split across chunks. Pass flush=true after the final chunk to release
- * any held-back text.
+ * Stateful filter separating <think>/<thinking> blocks emitted by reasoning
+ * models (Qwen, DeepSeek R1, and similar) from the visible answer. Handles
+ * tags split across chunks. Pass flush=true after the final chunk to
+ * release any held-back text.
  */
-export function createThinkingFilter(): (chunk: string, flush?: boolean) => string {
+export function createThinkingFilter(): (
+  chunk: string,
+  flush?: boolean
+) => ThinkingFilterResult {
   let inThink = false;
   let carry = "";
 
-  function scan(text: string, flush: boolean): string {
+  function scan(text: string, flush: boolean): ThinkingFilterResult {
     let out = "";
+    let thought = "";
     let i = 0;
     while (i < text.length) {
       if (inThink) {
@@ -55,14 +66,18 @@ export function createThinkingFilter(): (chunk: string, flush?: boolean) => stri
         const idx = rest.search(THINK_CLOSE_SEARCH_RE);
         if (idx === -1) {
           if (!flush && rest.length > MAX_PARTIAL_TAG_HOLD) {
-            // Hold a possible split closing tag; drop the rest (thinking).
+            // Hold a possible split closing tag; the rest is thinking.
+            thought += rest.slice(0, -MAX_PARTIAL_TAG_HOLD);
             carry = rest.slice(-MAX_PARTIAL_TAG_HOLD) + carry;
           } else if (!flush) {
             carry = rest + carry;
+          } else {
+            thought += rest;
           }
-          return out;
+          return { visible: out, thinking: thought };
         }
         const match = rest.slice(idx).match(THINK_CLOSE_RE) as RegExpMatchArray;
+        thought += rest.slice(0, idx);
         i += idx + match[0].length;
         inThink = false;
         continue;
@@ -70,7 +85,7 @@ export function createThinkingFilter(): (chunk: string, flush?: boolean) => stri
       const lt = text.indexOf("<", i);
       if (lt === -1) {
         out += text.slice(i);
-        return out;
+        return { visible: out, thinking: thought };
       }
       out += text.slice(i, lt);
       const rest = text.slice(lt);
@@ -87,15 +102,15 @@ export function createThinkingFilter(): (chunk: string, flush?: boolean) => stri
       }
       if (!flush && PARTIAL_TAG_RE.test(rest)) {
         carry = rest + carry; // possible split opening tag: wait for more
-        return out;
+        return { visible: out, thinking: thought };
       }
       out += "<";
       i = lt + 1;
     }
-    return out;
+    return { visible: out, thinking: thought };
   }
 
-  return (chunk: string, flush = false): string => {
+  return (chunk: string, flush = false): ThinkingFilterResult => {
     const text = carry + chunk;
     carry = "";
     return scan(text, flush);
@@ -165,7 +180,9 @@ export async function GET(
 
   const { data: messages, error: messagesError } = await supabase
     .from("messages")
-    .select("id, workspace_id, sender_id, role, content, model, cost_cents, created_at")
+    .select(
+      "id, workspace_id, sender_id, role, content, model, cost_cents, reasoning, created_at"
+    )
     .eq("workspace_id", id)
     .order("created_at", { ascending: true })
     .range(offset, offset + limit - 1);
@@ -369,13 +386,18 @@ export async function POST(
 
       try {
         let fullContent = "";
+        let thinkingContent = "";
         const filterThinking = createThinkingFilter();
         for await (const chunk of provider.sendMessageStream({
           messages: llmMessages,
           model,
         })) {
           if (chunk.type === "token" && chunk.content) {
-            const visible = filterThinking(chunk.content);
+            const { visible, thinking } = filterThinking(chunk.content);
+            if (thinking) {
+              thinkingContent += thinking;
+              send("reasoning", { content: thinking });
+            }
             if (visible) {
               fullContent += visible;
               send("token", { content: visible });
@@ -392,9 +414,13 @@ export async function POST(
         }
 
         const tail = filterThinking("", true);
-        if (tail) {
-          fullContent += tail;
-          send("token", { content: tail });
+        if (tail.thinking) {
+          thinkingContent += tail.thinking;
+          send("reasoning", { content: tail.thinking });
+        }
+        if (tail.visible) {
+          fullContent += tail.visible;
+          send("token", { content: tail.visible });
         }
 
         // Free models report no usage cost; store 0 until real
@@ -408,6 +434,7 @@ export async function POST(
             content: fullContent || "(no response)",
             model,
             cost_cents: 0,
+            reasoning: thinkingContent || null,
           })
           .select("id")
           .single();

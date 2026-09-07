@@ -54,6 +54,16 @@ export default function MessageBubble({
             {formatTime(message.created_at)}
           </span>
         </div>
+        {!isUser && message.reasoning && (
+          <details className="mb-2 rounded-md bg-gray-50 px-2 py-1 text-xs text-gray-500">
+            <summary className="cursor-pointer font-medium hover:text-gray-700">
+              Show thinking
+            </summary>
+            <p className="mt-1 whitespace-pre-wrap leading-relaxed">
+              {message.reasoning}
+            </p>
+          </details>
+        )}
         <p className="whitespace-pre-wrap text-sm leading-relaxed">
           {message.content}
           {streaming && (

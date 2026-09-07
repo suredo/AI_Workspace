@@ -44,6 +44,7 @@ export interface Message {
   content: string;
   model: string | null;
   cost_cents: number | null;
+  reasoning: string | null;
   created_at: string;
 }
 
