@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockAuth = vi.fn();
 vi.mock("@/lib/auth", () => ({
@@ -119,21 +119,6 @@ describe("POST /api/workspaces/[id]/test-connection", () => {
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-    });
-  }
-
-  function mockFetchSuccess(response: unknown) {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => response,
-    });
-  }
-
-  function mockFetchError(status: number, errorBody: unknown) {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status,
-      json: async () => errorBody,
     });
   }
 

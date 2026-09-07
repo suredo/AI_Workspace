@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -77,7 +77,7 @@ export default function SettingsPage() {
 // Danger zone
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  async function fetchAllData() {
+  const fetchAllData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -114,14 +114,13 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [workspaceId]);
 
   useEffect(() => {
     // Data fetching on mount is a legitimate use case for setState in effect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAllData();
-  }, [workspaceId]);
+  }, [fetchAllData]);
 
   async function handleGeneralSave() {
     setSaving(true);
@@ -211,7 +210,7 @@ export default function SettingsPage() {
       } else {
         setTestResult({ success: false, message: data.error?.message || "Connection failed" });
       }
-    } catch (e) {
+    } catch {
       setTestResult({ success: false, message: "Network error" });
     } finally {
       setTestingConnection(false);
