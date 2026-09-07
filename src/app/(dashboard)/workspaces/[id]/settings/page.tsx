@@ -31,6 +31,15 @@ interface Workspace {
   current_user_membership: { role: "owner" | "admin" | "member"; id: string };
 }
 
+interface Invitation {
+  id: string;
+  token: string;
+  created_by: string;
+  created_at: string;
+  expires_at: string;
+  created_by_name: string;
+}
+
 const PROVIDER_DEFAULTS: Record<string, { baseUrl: string; model: string }> = {
   groq: { baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
@@ -73,6 +82,10 @@ export default function SettingsPage() {
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState<"admin" | "member">("member");
   const [editCap, setEditCap] = useState(500);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
+  const [creatingInvite, setCreatingInvite] = useState(false);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
 // Danger zone
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -311,6 +324,15 @@ export default function SettingsPage() {
     return new Date(dateStr).toLocaleDateString();
   }
 
+  function formatExpiry(dateStr: string): string {
+    const expires = new Date(dateStr);
+    const now = new Date();
+    const daysLeft = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysLeft <= 0) return "Expired";
+    if (daysLeft === 1) return "Expires tomorrow";
+    return `Expires in ${daysLeft} days`;
+  }
+
   function roleBadge(role: string) {
     const colors: Record<string, string> = {
       owner: "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200",
@@ -324,6 +346,54 @@ export default function SettingsPage() {
   const isAdmin = workspace?.current_user_membership.role === "admin";
   const canManageMembers = isOwner || isAdmin;
   const canManageProvider = isOwner;
+
+  useEffect(() => {
+    if (!canManageMembers || activeTab !== "members") return;
+    let cancelled = false;
+    async function loadInvitations() {
+      setInvitationsLoading(true);
+      try {
+        const res = await fetch(`/api/workspaces/${workspaceId}/invitations`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) {
+            setInvitations(data.invitations || []);
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setInvitationsLoading(false);
+        }
+      }
+    }
+    loadInvitations();
+    return () => { cancelled = true; };
+  }, [workspaceId, activeTab, canManageMembers]);
+
+  async function handleCreateInvite() {
+    setCreatingInvite(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/invitations`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const listRes = await fetch(`/api/workspaces/${workspaceId}/invitations`);
+        if (listRes.ok) {
+          const data = await listRes.json();
+          setInvitations(data.invitations || []);
+        }
+      }
+    } finally {
+      setCreatingInvite(false);
+    }
+  }
+
+  async function copyInviteLink(token: string) {
+    const url = `${window.location.origin}/invitations/${token}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
+  }
 
   if (loading) {
     return (
@@ -354,7 +424,7 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <Link href={`/workspaces/${workspaceId}`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 block">
+        <Link href={`/workspaces/${workspaceId}`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 block pl-10 md:pl-0">
           ← Back to Workspace
         </Link>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings: {workspace.name}</h1>
@@ -557,6 +627,52 @@ export default function SettingsPage() {
 
       {activeTab === "members" && canManageMembers && (
         <div className="space-y-6">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Invitations</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Share an invite link with new members. Links expire after 7 days.
+                </p>
+              </div>
+              <button
+                onClick={handleCreateInvite}
+                disabled={creatingInvite}
+                className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {creatingInvite ? "Creating..." : "Invite"}
+              </button>
+            </div>
+
+            {invitationsLoading ? (
+              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+            ) : invitations.length === 0 ? (
+              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No pending invitations</p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {invitations.map((inv) => (
+                  <li key={inv.id} className="rounded-md bg-gray-50 dark:bg-gray-800 p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Created by {inv.created_by_name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatExpiry(inv.expires_at)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => copyInviteLink(inv.token)}
+                        className="rounded-md border border-gray-300 dark:border-gray-700 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        {copiedToken === inv.token ? "Copied!" : "Copy link"}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Members</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
