@@ -116,19 +116,19 @@ export async function PUT(
     return NextResponse.json({ error: "member_id is required" }, { status: 400 });
   }
 
-  if (member_id === currentUserId) {
-    return NextResponse.json({ error: "Cannot modify your own membership" }, { status: 400 });
-  }
-
   const { data: targetMember, error: targetError } = await supabase
     .from("workspace_members")
-    .select("id, role")
+    .select("id, user_id, role")
     .eq("id", member_id)
     .eq("workspace_id", id)
     .single();
 
   if (targetError || !targetMember) {
     return NextResponse.json({ error: "Member not found" }, { status: 404 });
+  }
+
+  if (targetMember.user_id === currentUserId) {
+    return NextResponse.json({ error: "Cannot modify your own membership" }, { status: 400 });
   }
 
   // Only owner can change role
@@ -205,19 +205,19 @@ export async function DELETE(
     return NextResponse.json({ error: "member_id is required" }, { status: 400 });
   }
 
-  if (memberId === currentUserId) {
-    return NextResponse.json({ error: "Cannot remove yourself" }, { status: 400 });
-  }
-
   const { data: targetMember, error: targetError } = await supabase
     .from("workspace_members")
-    .select("id, role")
+    .select("id, user_id, role")
     .eq("id", memberId)
     .eq("workspace_id", id)
     .single();
 
   if (targetError || !targetMember) {
     return NextResponse.json({ error: "Member not found" }, { status: 404 });
+  }
+
+  if (targetMember.user_id === currentUserId) {
+    return NextResponse.json({ error: "Cannot remove yourself" }, { status: 400 });
   }
 
   if (targetMember.role === "owner") {

@@ -378,6 +378,15 @@ describe("PUT /api/workspaces/[id]/members", () => {
             }),
           }),
         }),
+      })
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { id: "mem-self", user_id: "user-123", role: "member" }, error: null }),
+            }),
+          }),
+        }),
       });
 
     mockSupabase.from = mockFrom;
@@ -386,7 +395,7 @@ describe("PUT /api/workspaces/[id]/members", () => {
     const request = new Request("http://localhost:3000/api/workspaces/ws-123/members", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ member_id: "user-123", role: "admin" }),
+      body: JSON.stringify({ member_id: "mem-self", role: "admin" }),
     });
     const response = await PUT(request, { params: Promise.resolve({ id: "ws-123" }) });
     const body = await response.json();
@@ -683,11 +692,19 @@ describe("DELETE /api/workspaces/[id]/members", () => {
     mockRequireWorkspaceOwner.mockResolvedValue({
       userId: "user-123",
       membership: { role: "owner" },
-      supabase: { from: vi.fn() } as Record<string, unknown>,
+      supabase: { from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { id: "mem-self", user_id: "user-123", role: "member" }, error: null }),
+            }),
+          }),
+        }),
+      }) } as Record<string, unknown>,
     });
 
     const { DELETE } = await import("@/app/api/workspaces/[id]/members/route");
-    const request = new Request("http://localhost:3000/api/workspaces/ws-123/members?member_id=user-123", {
+    const request = new Request("http://localhost:3000/api/workspaces/ws-123/members?member_id=mem-self", {
       method: "DELETE",
     });
     const response = await DELETE(request, { params: Promise.resolve({ id: "ws-123" }) });
