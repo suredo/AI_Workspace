@@ -38,20 +38,20 @@ export default function MessageBubble({
   // own tinted treatment so it never reads as another member.
   const alignRight = isUser && isOwn;
   const bubbleClass = !isUser
-    ? "border border-indigo-200 bg-indigo-50/60 text-gray-900"
+    ? "border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/60 text-gray-900 dark:text-gray-100"
     : alignRight
       ? "bg-blue-600 text-white"
-      : "border border-gray-200 bg-white text-gray-900";
+      : "border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100";
   const nameClass = !isUser
-    ? "text-indigo-900"
+    ? "text-indigo-900 dark:text-indigo-200"
     : alignRight
       ? "text-blue-100"
-      : "text-gray-900";
+      : "text-gray-900 dark:text-gray-100";
   const timeClass = !isUser
-    ? "text-indigo-300"
+    ? "text-indigo-300 dark:text-indigo-400"
     : alignRight
       ? "text-blue-200"
-      : "text-gray-400";
+      : "text-gray-400 dark:text-gray-500";
 
   return (
     <div className={`flex ${alignRight ? "justify-end" : "justify-start"}`}>
@@ -69,8 +69,8 @@ export default function MessageBubble({
           </span>
         </div>
         {!isUser && reasoning && (
-          <details className="mb-2 rounded-md bg-gray-50 px-2 py-1 text-xs text-gray-500">
-            <summary className="cursor-pointer font-medium hover:text-gray-700">
+          <details className="mb-2 rounded-md bg-gray-50 dark:bg-gray-800 px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+            <summary className="cursor-pointer font-medium hover:text-gray-700 dark:hover:text-gray-300">
               Show thinking
             </summary>
             <p className="mt-1 whitespace-pre-wrap leading-relaxed">
@@ -85,7 +85,7 @@ export default function MessageBubble({
           )}
         </p>
         {!isUser && (message.model || cost) && (
-          <p className="mt-2 text-[11px] text-gray-400">
+          <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
             {message.model && <span>{message.model}</span>}
             {message.model && cost && <span> &middot; </span>}
             {cost && <span>{cost}</span>}

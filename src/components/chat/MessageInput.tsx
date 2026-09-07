@@ -50,7 +50,7 @@ export default function MessageInput({
               ? "You've reached your daily spending limit."
               : "Type a message... (Enter to send, Shift+Enter for newline)"
           }
-          className="flex-1 resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
+          className="flex-1 resize-none rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:dark:bg-gray-800 disabled:text-gray-400 disabled:dark:text-gray-500"
         />
         <button
           onClick={handleSend}
@@ -61,9 +61,9 @@ export default function MessageInput({
         </button>
       </div>
       <div className="mt-2 flex items-center justify-between">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           {capReached ? (
-            <span className="font-medium text-red-600">
+            <span className="font-medium text-red-600 dark:text-red-400">
               Daily limit reached. Resets tomorrow.
             </span>
           ) : remainingCents !== null ? (
@@ -71,7 +71,7 @@ export default function MessageInput({
           ) : null}
         </p>
         {sending && (
-          <p className="text-xs text-gray-500">AI is responding...</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">AI is responding...</p>
         )}
       </div>
     </div>

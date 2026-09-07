@@ -94,10 +94,10 @@ function RegisterForm() {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Create Account</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Join AI Workspace to collaborate with your team
         </p>
       </div>
@@ -106,7 +106,7 @@ function RegisterForm() {
         <div>
           <label
             htmlFor="displayName"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             Display Name
           </label>
@@ -115,23 +115,23 @@ function RegisterForm() {
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className={`mt-1 block w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 ${
+            className={`mt-1 block w-full rounded-md border bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 ${
               errors.displayName
-                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
             }`}
             placeholder="Your name"
             disabled={isSubmitting}
           />
           {errors.displayName && (
-            <p className="mt-1 text-xs text-red-600">{errors.displayName}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.displayName}</p>
           )}
         </div>
 
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             Email
           </label>
@@ -140,23 +140,23 @@ function RegisterForm() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={`mt-1 block w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 ${
+            className={`mt-1 block w-full rounded-md border bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 ${
               errors.email
-                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
             }`}
             placeholder="you@example.com"
             disabled={isSubmitting}
           />
           {errors.email && (
-            <p className="mt-1 text-xs text-red-600">{errors.email}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.email}</p>
           )}
         </div>
 
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             Password
           </label>
@@ -165,21 +165,21 @@ function RegisterForm() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={`mt-1 block w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 ${
+            className={`mt-1 block w-full rounded-md border bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 ${
               errors.password
-                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500"
+                : "border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
             }`}
             placeholder="At least 8 characters"
             disabled={isSubmitting}
           />
           {errors.password && (
-            <p className="mt-1 text-xs text-red-600">{errors.password}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.password}</p>
           )}
         </div>
 
         {errors.submit && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-md bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300">
             {errors.submit}
           </div>
         )}
@@ -193,11 +193,11 @@ function RegisterForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-600">
+      <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
         Already have an account?{" "}
         <Link
           href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-          className="font-medium text-blue-600 hover:text-blue-500"
+          className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
         >
           Sign in
         </Link>
