@@ -28,6 +28,80 @@ function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+const THINK_OPEN_RE = /^<(think|thinking)\s*>/i;
+const THINK_CLOSE_RE = /^<\/(think|thinking)\s*>/i;
+const THINK_CLOSE_SEARCH_RE = /<\/(think|thinking)\s*>/i;
+const PARTIAL_TAG_RE = /^<\/?[a-z]*$/i;
+// Longest tag is "</thinking>"; hold back at most this minus one char so a
+// closing tag split across chunks can still be recognized.
+const MAX_PARTIAL_TAG_HOLD = "</thinking>".length - 1;
+
+/**
+ * Stateful filter removing <think>/<thinking> blocks emitted by reasoning
+ * models (Qwen, DeepSeek R1, and similar) from streamed text. Handles tags
+ * split across chunks. Pass flush=true after the final chunk to release
+ * any held-back text.
+ */
+export function createThinkingFilter(): (chunk: string, flush?: boolean) => string {
+  let inThink = false;
+  let carry = "";
+
+  function scan(text: string, flush: boolean): string {
+    let out = "";
+    let i = 0;
+    while (i < text.length) {
+      if (inThink) {
+        const rest = text.slice(i);
+        const idx = rest.search(THINK_CLOSE_SEARCH_RE);
+        if (idx === -1) {
+          if (!flush && rest.length > MAX_PARTIAL_TAG_HOLD) {
+            // Hold a possible split closing tag; drop the rest (thinking).
+            carry = rest.slice(-MAX_PARTIAL_TAG_HOLD) + carry;
+          } else if (!flush) {
+            carry = rest + carry;
+          }
+          return out;
+        }
+        const match = rest.slice(idx).match(THINK_CLOSE_RE) as RegExpMatchArray;
+        i += idx + match[0].length;
+        inThink = false;
+        continue;
+      }
+      const lt = text.indexOf("<", i);
+      if (lt === -1) {
+        out += text.slice(i);
+        return out;
+      }
+      out += text.slice(i, lt);
+      const rest = text.slice(lt);
+      const open = rest.match(THINK_OPEN_RE);
+      if (open?.index === 0) {
+        inThink = true;
+        i = lt + open[0].length;
+        continue;
+      }
+      const close = rest.match(THINK_CLOSE_RE);
+      if (close?.index === 0) {
+        i = lt + close[0].length; // stray closing tag: drop
+        continue;
+      }
+      if (!flush && PARTIAL_TAG_RE.test(rest)) {
+        carry = rest + carry; // possible split opening tag: wait for more
+        return out;
+      }
+      out += "<";
+      i = lt + 1;
+    }
+    return out;
+  }
+
+  return (chunk: string, flush = false): string => {
+    const text = carry + chunk;
+    carry = "";
+    return scan(text, flush);
+  };
+}
+
 async function fetchSenderNames(
   supabase: Awaited<ReturnType<typeof createClient>>,
   messages: { sender_id: string | null }[]
@@ -295,13 +369,17 @@ export async function POST(
 
       try {
         let fullContent = "";
+        const filterThinking = createThinkingFilter();
         for await (const chunk of provider.sendMessageStream({
           messages: llmMessages,
           model,
         })) {
           if (chunk.type === "token" && chunk.content) {
-            fullContent += chunk.content;
-            send("token", { content: chunk.content });
+            const visible = filterThinking(chunk.content);
+            if (visible) {
+              fullContent += visible;
+              send("token", { content: visible });
+            }
           } else if (chunk.type === "done") {
             break;
           } else if (chunk.type === "error") {
@@ -311,6 +389,12 @@ export async function POST(
             });
             return;
           }
+        }
+
+        const tail = filterThinking("", true);
+        if (tail) {
+          fullContent += tail;
+          send("token", { content: tail });
         }
 
         // Free models report no usage cost; store 0 until real

@@ -442,4 +442,81 @@ describe("POST /api/workspaces/[id]/messages", () => {
     expect(text).toContain("Rate limit exceeded");
     expect(text).not.toContain("event: done");
   });
+
+  it("strips thinking blocks from streamed content", async () => {
+    setupSuccessFlow({
+      stream: async function* () {
+        yield { type: "token", content: "<think>\nsecret reasoning\n</think>\n" };
+        yield { type: "token", content: "Hello!" };
+        yield { type: "done" };
+      },
+    });
+
+    const { POST } = await import("@/app/api/workspaces/[id]/messages/route");
+    const response = await POST(
+      new Request("http://localhost:3000/api/workspaces/ws-123/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "Hi" }),
+      }),
+      { params: Promise.resolve({ id: "ws-123" }) }
+    );
+
+    const text = await readStream(response);
+    expect(text).not.toContain("secret reasoning");
+    expect(text).not.toContain("<think>");
+    expect(text).toContain('"content":"Hello!"');
+    expect(text).toContain("event: done");
+  });
+});
+
+describe("createThinkingFilter", () => {
+  it("strips a complete block and keeps surrounding text", async () => {
+    const { createThinkingFilter } = await import(
+      "@/app/api/workspaces/[id]/messages/route"
+    );
+    const filter = createThinkingFilter();
+    expect(filter("Hello <think>reasoning</think> world")).toBe(
+      "Hello  world"
+    );
+    expect(filter("", true)).toBe("");
+  });
+
+  it("handles tags split across chunks", async () => {
+    const { createThinkingFilter } = await import(
+      "@/app/api/workspaces/[id]/messages/route"
+    );
+    const filter = createThinkingFilter();
+    expect(filter("<th")).toBe("");
+    expect(filter("ink>hidden</th")).toBe("");
+    expect(filter("ink>Hi", true)).toBe("Hi");
+  });
+
+  it("handles case-insensitive and thinking variants", async () => {
+    const { createThinkingFilter } = await import(
+      "@/app/api/workspaces/[id]/messages/route"
+    );
+    const filter = createThinkingFilter();
+    expect(filter("<THINKING>deep thought</THINKING>Answer", true)).toBe(
+      "Answer"
+    );
+  });
+
+  it("drops unclosed blocks at flush", async () => {
+    const { createThinkingFilter } = await import(
+      "@/app/api/workspaces/[id]/messages/route"
+    );
+    const filter = createThinkingFilter();
+    expect(filter("<think>never closed", true)).toBe("");
+  });
+
+  it("preserves literal angle brackets and drops stray closes", async () => {
+    const { createThinkingFilter } = await import(
+      "@/app/api/workspaces/[id]/messages/route"
+    );
+    const filter = createThinkingFilter();
+    expect(filter("2 < 3 and a </think> stray", true)).toBe(
+      "2 < 3 and a  stray"
+    );
+  });
 });
