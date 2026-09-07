@@ -26,6 +26,11 @@ export default function MessageBubble({
 }) {
   const isUser = message.role === "user";
   const cost = formatCost(message.cost_cents);
+  // Reasoning traces and answers often carry boundary newlines around the
+  // </think> tag; trim the edges so no blank gap renders while keeping
+  // intentional line breaks inside the text (whitespace-pre-wrap).
+  const content = message.content.trim();
+  const reasoning = message.reasoning?.trim() || null;
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -54,18 +59,18 @@ export default function MessageBubble({
             {formatTime(message.created_at)}
           </span>
         </div>
-        {!isUser && message.reasoning && (
+        {!isUser && reasoning && (
           <details className="mb-2 rounded-md bg-gray-50 px-2 py-1 text-xs text-gray-500">
             <summary className="cursor-pointer font-medium hover:text-gray-700">
               Show thinking
             </summary>
             <p className="mt-1 whitespace-pre-wrap leading-relaxed">
-              {message.reasoning}
+              {reasoning}
             </p>
           </details>
         )}
         <p className="whitespace-pre-wrap text-sm leading-relaxed">
-          {message.content}
+          {content}
           {streaming && (
             <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-current align-middle" />
           )}
