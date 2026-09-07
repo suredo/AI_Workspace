@@ -39,7 +39,7 @@ const PROVIDER_DEFAULTS: Record<string, { baseUrl: string; model: string }> = {
   cerebras: { baseUrl: "https://api.cerebras.ai/v1", model: "llama3.1-70b" },
 };
 
-const ROLE_OPTIONS = ["owner", "admin", "member"] as const;
+const ROLE_OPTIONS = ["admin", "member"] as const;
 
 export default function SettingsPage() {
   const params = useParams();
@@ -71,7 +71,7 @@ export default function SettingsPage() {
 
   // Members tab
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
-  const [editRole, setEditRole] = useState<"owner" | "admin" | "member">("member");
+  const [editRole, setEditRole] = useState<"admin" | "member">("member");
   const [editCap, setEditCap] = useState(500);
 
 // Danger zone
@@ -227,6 +227,7 @@ export default function SettingsPage() {
   }
 
   function startEditMember(member: Member) {
+    if (member.role === "owner") return;
     setEditingMemberId(member.id);
     setEditRole(member.role);
     setEditCap(member.daily_cap_cents);
@@ -579,7 +580,7 @@ export default function SettingsPage() {
                         {editingMemberId === member.id ? (
                           <select
                             value={editRole}
-                            onChange={(e) => setEditRole(e.target.value as "owner" | "admin" | "member")}
+                            onChange={(e) => setEditRole(e.target.value as "admin" | "member")}
                             disabled={!isOwner || member.user_id === workspace?.owner_id}
                             className="rounded-md border border-gray-300 px-2 py-1 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
@@ -630,7 +631,7 @@ export default function SettingsPage() {
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-2">
-                            {canManageMembers && member.id !== workspace?.current_user_membership?.id && (
+                            {canManageMembers && member.role !== "owner" && member.id !== workspace?.current_user_membership?.id && (
                               <button
                                 onClick={() => startEditMember(member)}
                                 className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"

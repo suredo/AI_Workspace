@@ -100,7 +100,7 @@ export async function PUT(
 
   let body: {
     member_id?: string;
-    role?: "owner" | "admin" | "member";
+    role?: string;
     daily_cap_cents?: number;
   };
 
@@ -131,13 +131,22 @@ export async function PUT(
     return NextResponse.json({ error: "Cannot modify your own membership" }, { status: 400 });
   }
 
+  // Owner role is immutable: it can never be assigned (single owner per workspace)
+  if (role === "owner") {
+    return NextResponse.json({ error: "Cannot assign owner role" }, { status: 400 });
+  }
+
   // Only owner can change role
   if (role !== undefined) {
+    if (role !== "admin" && role !== "member") {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+
     if (membership.role !== "owner") {
       return NextResponse.json({ error: "Only owner can change roles" }, { status: 403 });
     }
 
-    if (targetMember.role === "owner" && role !== "owner") {
+    if (targetMember.role === "owner") {
       return NextResponse.json({ error: "Cannot change owner role" }, { status: 400 });
     }
   }

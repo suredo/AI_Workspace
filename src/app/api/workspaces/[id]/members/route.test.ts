@@ -476,6 +476,78 @@ describe("PUT /api/workspaces/[id]/members", () => {
     expect(body.error).toBe("Only owner can change roles");
   });
 
+  it("returns 400 when trying to assign owner role", async () => {
+    mockFrom = vi.fn()
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { role: "owner" }, error: null }),
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { id: "mem-2", user_id: "user-456", role: "member" }, error: null }),
+            }),
+          }),
+        }),
+      });
+
+    mockSupabase.from = mockFrom;
+
+    const { PUT } = await import("@/app/api/workspaces/[id]/members/route");
+    const request = new Request("http://localhost:3000/api/workspaces/ws-123/members", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ member_id: "mem-2", role: "owner" }),
+    });
+    const response = await PUT(request, { params: Promise.resolve({ id: "ws-123" }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Cannot assign owner role");
+  });
+
+  it("returns 400 for invalid role", async () => {
+    mockFrom = vi.fn()
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { role: "owner" }, error: null }),
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { id: "mem-2", user_id: "user-456", role: "member" }, error: null }),
+            }),
+          }),
+        }),
+      });
+
+    mockSupabase.from = mockFrom;
+
+    const { PUT } = await import("@/app/api/workspaces/[id]/members/route");
+    const request = new Request("http://localhost:3000/api/workspaces/ws-123/members", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ member_id: "mem-2", role: "superadmin" }),
+    });
+    const response = await PUT(request, { params: Promise.resolve({ id: "ws-123" }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Invalid role");
+  });
+
   it("returns 400 for negative daily cap", async () => {
     mockFrom = vi.fn()
       .mockReturnValueOnce({
