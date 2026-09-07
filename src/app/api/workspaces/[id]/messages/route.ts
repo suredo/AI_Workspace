@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { getProvider } from "@/lib/providers";
-import type { LLMMessage } from "@/lib/providers/types";
+import type { LLMMessage, LLMProvider } from "@/lib/providers/types";
 import type { MessageWithSender } from "@/lib/types";
 
 const CTX = "api:workspaces:[id]:messages";
@@ -232,15 +232,12 @@ export async function POST(
     );
   }
 
-  let provider;
+  let provider: LLMProvider;
   try {
     provider = getProvider(workspace);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to initialize provider";
     logger.error(CTX, "Failed to create provider", { error: message });
-    if (message.includes("decrypt")) {
-      return NextResponse.json({ error: message }, { status: 500 });
-    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
@@ -263,12 +260,19 @@ export async function POST(
   }
 
   // Fetch recent history for context (newest first, then reverse).
-  const { data: history } = await supabase
+  // On failure we fall back to system-prompt-only context.
+  const { data: history, error: historyError } = await supabase
     .from("messages")
     .select("role, content")
     .eq("workspace_id", id)
     .order("created_at", { ascending: false })
     .limit(CONTEXT_MESSAGE_COUNT);
+
+  if (historyError) {
+    logger.warn(CTX, "Failed to fetch context history, continuing with system prompt only", {
+      error: historyError.message,
+    });
+  }
 
   const llmMessages: LLMMessage[] = [
     { role: "system", content: workspace.system_prompt as string },
