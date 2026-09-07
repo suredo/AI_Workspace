@@ -28,6 +28,54 @@ function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+const MAX_SENDER_NAME_LENGTH = 50;
+
+/**
+ * Sanitize a display name for use in the "[Name]:" LLM prefix.
+ * Strips bracket/angle/newline characters that could break the format
+ * or forge attributions, trims, and caps length.
+ */
+export function sanitizeSenderName(name: string): string {
+  const cleaned = name.replace(/[[<>\]\r\n]/g, "").trim().slice(0, MAX_SENDER_NAME_LENGTH).trim();
+  return cleaned || "Unknown";
+}
+
+/**
+ * Format a stored message for the LLM context. User messages get a
+ * "[Name]:" prefix so the model knows who wrote what in the shared
+ * thread; assistant messages pass through untouched. Uses display_name
+ * as-is (see issue #40 for the future nickname rename).
+ */
+export function formatMessageForLLM(
+  role: string,
+  content: string,
+  senderName: string | null
+): LLMMessage {
+  if (role === "assistant") {
+    return { role: "assistant", content };
+  }
+  const name = senderName ? sanitizeSenderName(senderName) : "Unknown";
+  return { role: "user", content: `[${name}]: ${content}` };
+}
+
+/**
+ * Append shared-thread identity instructions to the workspace system
+ * prompt (per-request only, never persisted). Deliberately permissive —
+ * the model may use names when helpful, otherwise replies naturally.
+ */
+export function buildSystemPrompt(
+  basePrompt: string,
+  currentSenderName: string | null
+): string {
+  const current = currentSenderName ? sanitizeSenderName(currentSenderName) : null;
+  const latest = current ? ` The latest message is from [${current}].` : "";
+  return (
+    `${basePrompt}\n\nThis is a shared workspace conversation. ` +
+    `User messages are prefixed as [Name]: showing who wrote each message.${latest} ` +
+    `You may refer to people by name when it helps; otherwise reply naturally.`
+  );
+}
+
 const THINK_OPEN_RE = /^<(think|thinking)\s*>/i;
 const THINK_CLOSE_RE = /^<\/(think|thinking)\s*>/i;
 const THINK_CLOSE_SEARCH_RE = /<\/(think|thinking)\s*>/i;
@@ -125,7 +173,7 @@ async function fetchSenderNames(
     ...new Set(
       (messages || [])
         .map((m) => m.sender_id)
-        .filter((id): id is string => id !== null)
+        .filter((id): id is string => typeof id === "string")
     ),
   ];
   const nameMap: Record<string, string> = {};
@@ -351,10 +399,12 @@ export async function POST(
   }
 
   // Fetch recent history for context (newest first, then reverse).
-  // On failure we fall back to system-prompt-only context.
+  // Sender ids are included so user messages can be prefixed with the
+  // author's display name for the LLM. On failure we fall back to
+  // system-prompt-only context.
   const { data: history, error: historyError } = await supabase
     .from("messages")
-    .select("role, content")
+    .select("role, content, sender_id")
     .eq("workspace_id", id)
     .order("created_at", { ascending: false })
     .limit(CONTEXT_MESSAGE_COUNT);
@@ -365,14 +415,30 @@ export async function POST(
     });
   }
 
+  type HistoryRow = { role: string; content: string; sender_id: string | null };
+  const historyRows = ((history || []).reverse() as HistoryRow[]).filter(
+    (m) => m.role === "user" || m.role === "assistant"
+  );
+  const historyNames = await fetchSenderNames(supabase, historyRows);
+  // The just-inserted user message is the newest row, so history already
+  // carries the current sender's id — no extra user lookup needed.
+  const currentSenderName = historyNames[userId] ?? null;
+
   const llmMessages: LLMMessage[] = [
-    { role: "system", content: workspace.system_prompt as string },
-    ...((history || []).reverse() as { role: string; content: string }[])
-      .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+    {
+      role: "system",
+      content: buildSystemPrompt(
+        workspace.system_prompt as string,
+        currentSenderName
+      ),
+    },
+    ...historyRows.map((m) =>
+      formatMessageForLLM(
+        m.role,
+        m.content,
+        m.sender_id ? (historyNames[m.sender_id] ?? null) : null
+      )
+    ),
   ];
 
   const model = workspace.llm_model as string;
