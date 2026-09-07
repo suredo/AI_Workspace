@@ -234,7 +234,7 @@ export default function ChatPanel({
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center text-gray-400 dark:text-gray-500">
+      <div className="flex min-h-64 flex-1 items-center justify-center text-gray-400 dark:text-gray-500">
         <p className="text-sm">Loading messages...</p>
       </div>
     );
@@ -242,21 +242,21 @@ export default function ChatPanel({
 
   if (loadError) {
     return (
-      <div className="flex h-96 items-center justify-center">
+      <div className="flex min-h-64 flex-1 items-center justify-center">
         <p className="text-sm text-red-600 dark:text-red-400">{loadError}</p>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="flex h-full min-h-0 flex-col">
       <ChatThread
         messages={messages}
         streaming={streaming}
         streamingMessageId={streamingMessageId}
         currentUserId={currentUserId}
       />
-      <div className="border-t border-gray-200 dark:border-gray-800 px-6 py-4">
+      <div className="shrink-0 border-t border-gray-200 dark:border-gray-800 px-6 py-4">
         {sendError && (
           <div className="mb-3 rounded-md bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300">
             {sendError}{" "}

@@ -90,7 +90,7 @@ export async function GET(
   // Check user is a member
   const { data: membership, error: membershipError } = await supabase
     .from("workspace_members")
-    .select("id")
+    .select("id, role")
     .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
     .single();
@@ -98,6 +98,17 @@ export async function GET(
   if (membershipError || !membership) {
     logger.warn(CTX, "User is not a member", { workspaceId, userId });
     return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+  }
+
+  // Invite tokens grant workspace access, so listing them is restricted to
+  // owners and admins, same as creating them.
+  if (membership.role !== "owner" && membership.role !== "admin") {
+    logger.warn(CTX, "User is not owner or admin", {
+      workspaceId,
+      userId,
+      role: membership.role,
+    });
+    return NextResponse.json({ error: "Only owners and admins can view invitations" }, { status: 403 });
   }
 
   // Fetch pending invitations (not accepted and not expired)

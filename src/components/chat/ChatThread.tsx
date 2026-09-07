@@ -37,7 +37,7 @@ export default function ChatThread({
 
   if (messages.length === 0 && !streaming) {
     return (
-      <div className="flex h-96 items-center justify-center text-gray-400 dark:text-gray-500">
+      <div className="flex min-h-64 flex-1 items-center justify-center text-gray-400 dark:text-gray-500">
         <div className="text-center">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No messages yet</p>
           <p className="mt-1 text-sm">Start the conversation below.</p>
@@ -50,7 +50,7 @@ export default function ChatThread({
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="h-96 space-y-4 overflow-y-auto px-6 py-4"
+      className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4"
     >
       {messages.map((message) => (
         <MessageBubble
