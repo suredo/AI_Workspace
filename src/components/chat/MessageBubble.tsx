@@ -1,6 +1,7 @@
 "use client";
 
 import type { MessageWithSender } from "@/lib/types";
+import MarkdownContent from "./MarkdownContent";
 
 function formatCost(costCents: number | null): string | null {
   if (costCents === null) return null;
@@ -78,12 +79,16 @@ export default function MessageBubble({
             </p>
           </details>
         )}
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">
-          {content}
-          {streaming && (
-            <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-current align-middle" />
-          )}
-        </p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+            {content}
+            {streaming && (
+              <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-current align-middle" />
+            )}
+          </p>
+        ) : (
+          <MarkdownContent content={content} streaming={streaming} />
+        )}
         {!isUser && (message.model || cost) && (
           <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
             {message.model && <span>{message.model}</span>}
