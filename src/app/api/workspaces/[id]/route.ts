@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
+import { requireWorkspaceOwner, errorResponse } from "@/lib/api/workspace-auth";
 
 const CTX = "api:workspaces:[id]";
 
@@ -95,4 +96,111 @@ export async function GET(
   });
 
   return NextResponse.json({ workspace: result });
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  logger.info(CTX, "PUT request received", { workspaceId: id });
+
+  // Auth + ownership check (owner or admin)
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+  const supabase = await createClient();
+
+  const { data: membership, error: membershipError } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", id)
+    .eq("user_id", userId)
+    .single();
+
+  if (membershipError || !membership) {
+    return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+  }
+
+  // Allow owner or admin to update basic info
+  if (membership.role !== "owner" && membership.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let body: { name?: string; system_prompt?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { name, system_prompt } = body;
+  const updates: Record<string, string> = {};
+
+  if (name !== undefined) {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return NextResponse.json({ error: "Workspace name cannot be empty" }, { status: 400 });
+    }
+    if (trimmed.length > 100) {
+      return NextResponse.json({ error: "Workspace name must be 100 characters or less" }, { status: 400 });
+    }
+    updates.name = trimmed;
+  }
+
+  if (system_prompt !== undefined) {
+    const trimmed = system_prompt.trim();
+    if (!trimmed) {
+      return NextResponse.json({ error: "System prompt cannot be empty" }, { status: 400 });
+    }
+    updates.system_prompt = trimmed;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+  }
+
+  const { data: workspace, error: updateError } = await supabase
+    .from("workspaces")
+    .update(updates)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (updateError || !workspace) {
+    logger.error(CTX, "Failed to update workspace", { error: updateError?.message });
+    return NextResponse.json({ error: "Failed to update workspace" }, { status: 500 });
+  }
+
+  logger.info(CTX, "Workspace updated", { workspaceId: id, fields: Object.keys(updates) });
+  return NextResponse.json({ workspace });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  logger.info(CTX, "DELETE request received", { workspaceId: id });
+
+  // Only owner can delete workspace
+  const authResult = await requireWorkspaceOwner(id);
+  if ("error" in authResult) {
+    return errorResponse(authResult);
+  }
+
+  const { supabase } = authResult;
+
+  // Delete workspace (cascades to members, messages, invitations via FK)
+  const { error } = await supabase.from("workspaces").delete().eq("id", id);
+
+  if (error) {
+    logger.error(CTX, "Failed to delete workspace", { error: error.message });
+    return NextResponse.json({ error: "Failed to delete workspace" }, { status: 500 });
+  }
+
+  logger.info(CTX, "Workspace deleted", { workspaceId: id });
+  return NextResponse.json({ success: true });
 }
