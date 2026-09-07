@@ -28,6 +28,143 @@ function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+const MAX_SENDER_NAME_LENGTH = 50;
+
+/**
+ * Sanitize a display name for use in the "[Name]:" LLM prefix.
+ * Strips bracket/angle/newline characters that could break the format
+ * or forge attributions, trims, and caps length.
+ */
+export function sanitizeSenderName(name: string): string {
+  const cleaned = name.replace(/[[<>\]\r\n]/g, "").trim().slice(0, MAX_SENDER_NAME_LENGTH).trim();
+  return cleaned || "Unknown";
+}
+
+/**
+ * Format a stored message for the LLM context. User messages get a
+ * "[Name]:" prefix so the model knows who wrote what in the shared
+ * thread; assistant messages pass through untouched. Uses display_name
+ * as-is (see issue #40 for the future nickname rename).
+ */
+export function formatMessageForLLM(
+  role: string,
+  content: string,
+  senderName: string | null
+): LLMMessage {
+  if (role === "assistant") {
+    return { role: "assistant", content };
+  }
+  const name = senderName ? sanitizeSenderName(senderName) : "Unknown";
+  return { role: "user", content: `[${name}]: ${content}` };
+}
+
+/**
+ * Append shared-thread identity instructions to the workspace system
+ * prompt (per-request only, never persisted). Deliberately permissive —
+ * the model may use names when helpful, otherwise replies naturally.
+ */
+export function buildSystemPrompt(
+  basePrompt: string,
+  currentSenderName: string | null
+): string {
+  const current = currentSenderName ? sanitizeSenderName(currentSenderName) : null;
+  const latest = current ? ` The latest message is from [${current}].` : "";
+  return (
+    `${basePrompt}\n\nThis is a shared workspace conversation. ` +
+    `User messages are prefixed as [Name]: showing who wrote each message.${latest} ` +
+    `You may refer to people by name when it helps; otherwise reply naturally.`
+  );
+}
+
+const THINK_OPEN_RE = /^<(think|thinking)\s*>/i;
+const THINK_CLOSE_RE = /^<\/(think|thinking)\s*>/i;
+const THINK_CLOSE_SEARCH_RE = /<\/(think|thinking)\s*>/i;
+const PARTIAL_TAG_RE = /^<\/?[a-z]*$/i;
+// Longest tag is "</thinking>"; hold back at most this minus one char so a
+// closing tag split across chunks can still be recognized.
+const MAX_PARTIAL_TAG_HOLD = "</thinking>".length - 1;
+
+export interface ThinkingFilterResult {
+  /** Text safe to display and save as the answer. */
+  visible: string;
+  /** Thinking-trace text, for the collapsible reasoning view. */
+  thinking: string;
+}
+
+/**
+ * Stateful filter separating <think>/<thinking> blocks emitted by reasoning
+ * models (Qwen, DeepSeek R1, and similar) from the visible answer. Handles
+ * tags split across chunks. Pass flush=true after the final chunk to
+ * release any held-back text.
+ */
+export function createThinkingFilter(): (
+  chunk: string,
+  flush?: boolean
+) => ThinkingFilterResult {
+  let inThink = false;
+  let carry = "";
+
+  function scan(text: string, flush: boolean): ThinkingFilterResult {
+    let out = "";
+    let thought = "";
+    let i = 0;
+    while (i < text.length) {
+      if (inThink) {
+        const rest = text.slice(i);
+        const idx = rest.search(THINK_CLOSE_SEARCH_RE);
+        if (idx === -1) {
+          if (!flush && rest.length > MAX_PARTIAL_TAG_HOLD) {
+            // Hold a possible split closing tag; the rest is thinking.
+            thought += rest.slice(0, -MAX_PARTIAL_TAG_HOLD);
+            carry = rest.slice(-MAX_PARTIAL_TAG_HOLD) + carry;
+          } else if (!flush) {
+            carry = rest + carry;
+          } else {
+            thought += rest;
+          }
+          return { visible: out, thinking: thought };
+        }
+        const match = rest.slice(idx).match(THINK_CLOSE_RE) as RegExpMatchArray;
+        thought += rest.slice(0, idx);
+        i += idx + match[0].length;
+        inThink = false;
+        continue;
+      }
+      const lt = text.indexOf("<", i);
+      if (lt === -1) {
+        out += text.slice(i);
+        return { visible: out, thinking: thought };
+      }
+      out += text.slice(i, lt);
+      const rest = text.slice(lt);
+      const open = rest.match(THINK_OPEN_RE);
+      if (open?.index === 0) {
+        inThink = true;
+        i = lt + open[0].length;
+        continue;
+      }
+      const close = rest.match(THINK_CLOSE_RE);
+      if (close?.index === 0) {
+        i = lt + close[0].length; // stray closing tag: drop
+        continue;
+      }
+      if (!flush && PARTIAL_TAG_RE.test(rest)) {
+        carry = rest + carry; // possible split opening tag: wait for more
+        return { visible: out, thinking: thought };
+      }
+      out += "<";
+      i = lt + 1;
+    }
+    return { visible: out, thinking: thought };
+  }
+
+  return (chunk: string, flush = false): ThinkingFilterResult => {
+    const text = carry + chunk;
+    carry = "";
+    return scan(text, flush);
+  };
+}
+
 async function fetchSenderNames(
   supabase: Awaited<ReturnType<typeof createClient>>,
   messages: { sender_id: string | null }[]
@@ -36,7 +173,7 @@ async function fetchSenderNames(
     ...new Set(
       (messages || [])
         .map((m) => m.sender_id)
-        .filter((id): id is string => id !== null)
+        .filter((id): id is string => typeof id === "string")
     ),
   ];
   const nameMap: Record<string, string> = {};
@@ -91,7 +228,9 @@ export async function GET(
 
   const { data: messages, error: messagesError } = await supabase
     .from("messages")
-    .select("id, workspace_id, sender_id, role, content, model, cost_cents, created_at")
+    .select(
+      "id, workspace_id, sender_id, role, content, model, cost_cents, reasoning, created_at"
+    )
     .eq("workspace_id", id)
     .order("created_at", { ascending: true })
     .range(offset, offset + limit - 1);
@@ -260,10 +399,12 @@ export async function POST(
   }
 
   // Fetch recent history for context (newest first, then reverse).
-  // On failure we fall back to system-prompt-only context.
+  // Sender ids are included so user messages can be prefixed with the
+  // author's display name for the LLM. On failure we fall back to
+  // system-prompt-only context.
   const { data: history, error: historyError } = await supabase
     .from("messages")
-    .select("role, content")
+    .select("role, content, sender_id")
     .eq("workspace_id", id)
     .order("created_at", { ascending: false })
     .limit(CONTEXT_MESSAGE_COUNT);
@@ -274,15 +415,40 @@ export async function POST(
     });
   }
 
-  const llmMessages: LLMMessage[] = [
-    { role: "system", content: workspace.system_prompt as string },
-    ...((history || []).reverse() as { role: string; content: string }[])
-      .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-  ];
+  type HistoryRow = { role: string; content: string; sender_id: string | null };
+  let llmMessages: LLMMessage[];
+  if (historyError || !history) {
+    // No context available: send the bare base prompt without identity
+    // instructions, since no prefixed user messages accompany it.
+    llmMessages = [
+      { role: "system", content: workspace.system_prompt as string },
+    ];
+  } else {
+    const historyRows = (history.reverse() as HistoryRow[]).filter(
+      (m) => m.role === "user" || m.role === "assistant"
+    );
+    const historyNames = await fetchSenderNames(supabase, historyRows);
+    // The just-inserted user message is the newest row, so history already
+    // carries the current sender's id — no extra user lookup needed.
+    const currentSenderName = historyNames[userId] ?? null;
+
+    llmMessages = [
+      {
+        role: "system",
+        content: buildSystemPrompt(
+          workspace.system_prompt as string,
+          currentSenderName
+        ),
+      },
+      ...historyRows.map((m) =>
+        formatMessageForLLM(
+          m.role,
+          m.content,
+          m.sender_id ? (historyNames[m.sender_id] ?? null) : null
+        )
+      ),
+    ];
+  }
 
   const model = workspace.llm_model as string;
   const encoder = new TextEncoder();
@@ -295,13 +461,22 @@ export async function POST(
 
       try {
         let fullContent = "";
+        let thinkingContent = "";
+        const filterThinking = createThinkingFilter();
         for await (const chunk of provider.sendMessageStream({
           messages: llmMessages,
           model,
         })) {
           if (chunk.type === "token" && chunk.content) {
-            fullContent += chunk.content;
-            send("token", { content: chunk.content });
+            const { visible, thinking } = filterThinking(chunk.content);
+            if (thinking) {
+              thinkingContent += thinking;
+              send("reasoning", { content: thinking });
+            }
+            if (visible) {
+              fullContent += visible;
+              send("token", { content: visible });
+            }
           } else if (chunk.type === "done") {
             break;
           } else if (chunk.type === "error") {
@@ -311,6 +486,16 @@ export async function POST(
             });
             return;
           }
+        }
+
+        const tail = filterThinking("", true);
+        if (tail.thinking) {
+          thinkingContent += tail.thinking;
+          send("reasoning", { content: tail.thinking });
+        }
+        if (tail.visible) {
+          fullContent += tail.visible;
+          send("token", { content: tail.visible });
         }
 
         // Free models report no usage cost; store 0 until real
@@ -324,6 +509,7 @@ export async function POST(
             content: fullContent || "(no response)",
             model,
             cost_cents: 0,
+            reasoning: thinkingContent || null,
           })
           .select("id")
           .single();

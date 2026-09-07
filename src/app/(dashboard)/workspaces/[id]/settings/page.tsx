@@ -190,12 +190,16 @@ export default function SettingsPage() {
     setTestResult(null);
 
     try {
-      const body = {
+      const body: Record<string, string> = {
         llm_provider: provider,
         llm_base_url: baseUrl,
-        llm_api_key: apiKey,
         llm_model: model,
       };
+
+      // Omit a blank key so the endpoint tests the saved key instead.
+      if (apiKey.trim()) {
+        body.llm_api_key = apiKey.trim();
+      }
 
       const res = await fetch(`/api/workspaces/${workspaceId}/test-connection`, {
         method: "POST",
@@ -497,7 +501,7 @@ export default function SettingsPage() {
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
                   {config?.llm_api_key_set
-                    ? "API key is configured. Leave blank to keep current key."
+                    ? "API key is configured. Leave blank to keep the current key — Test Connection will use the saved key."
                     : "No API key configured."}
                 </p>
               </div>
@@ -519,7 +523,11 @@ export default function SettingsPage() {
               <div className="flex gap-4">
                 <button
                   onClick={handleTestConnection}
-                  disabled={testingConnection || !apiKey.trim() || !baseUrl.trim()}
+                  disabled={
+                    testingConnection ||
+                    !baseUrl.trim() ||
+                    (!apiKey.trim() && !config?.llm_api_key_set)
+                  }
                   className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
                   {testingConnection ? "Testing..." : "Test Connection"}

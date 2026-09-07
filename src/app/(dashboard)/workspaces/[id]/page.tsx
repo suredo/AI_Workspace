@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import ChatPanel from "@/components/chat/ChatPanel";
 
 interface Member {
   id: string;
@@ -88,6 +89,9 @@ export default function WorkspaceDetailPage() {
   const isOwner = workspace?.current_user_membership.role === "owner";
   const isAdmin = workspace?.current_user_membership.role === "admin";
   const canInvite = isOwner || isAdmin;
+  const currentUserId =
+    workspace?.members.find((m) => m.id === workspace.current_user_membership.id)
+      ?.user_id ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -220,30 +224,7 @@ export default function WorkspaceDetailPage() {
               <div className="border-b border-gray-200 px-6 py-4">
                 <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
               </div>
-              <div className="flex h-96 items-center justify-center text-gray-400">
-                <div className="text-center space-y-2">
-                  <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-                  </svg>
-                  <p className="text-sm">Chat coming soon</p>
-                </div>
-              </div>
-              <div className="border-t border-gray-200 px-6 py-4">
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    disabled
-                    placeholder="Chat messages will appear here..."
-                    className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-400"
-                  />
-                  <button
-                    disabled
-                    className="rounded-md bg-gray-300 px-4 py-2 text-sm font-medium text-gray-500 cursor-not-allowed"
-                  >
-                    Send
-                  </button>
-                </div>
-              </div>
+              <ChatPanel workspaceId={workspaceId} currentUserId={currentUserId} />
             </div>
           </div>
 
