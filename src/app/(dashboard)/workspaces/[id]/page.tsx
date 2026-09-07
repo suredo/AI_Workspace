@@ -187,21 +187,31 @@ export default function WorkspaceDetailPage() {
 
   return (
     <div>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-700">
-            &larr; Back to Dashboard
-          </Link>
-          <div className="mt-2 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{workspace.name}</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Created {formatDate(workspace.created_at)} &middot; {workspace.members.length} {workspace.members.length === 1 ? "member" : "members"}
-              </p>
+<div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-700">
+                  &larr; Back to Dashboard
+                </Link>
+              </div>
+              <Link
+                href={`/workspaces/${workspaceId}/settings`}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Settings
+              </Link>
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">{workspace.name}</h1>
+                <p className="mt-1 text-sm text-gray-600">
+                  Created {formatDate(workspace.created_at)} &middot; {workspace.members.length} {workspace.members.length === 1 ? "member" : "members"}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Chat Area (placeholder) */}
@@ -239,14 +249,6 @@ export default function WorkspaceDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* System Prompt */}
-            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900">System Prompt</h2>
-              <p className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
-                {workspace.system_prompt}
-              </p>
-            </div>
-
             {/* Members */}
             <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-900">Members</h2>
