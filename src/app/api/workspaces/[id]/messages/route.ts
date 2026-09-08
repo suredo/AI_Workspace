@@ -222,10 +222,12 @@ export async function GET(
     0
   );
 
+  // Per-message costs are never exposed in the chat feed (see issue #59):
+  // spend is only visible to the owner via the members-usage endpoint.
   const { data: messages, error: messagesError } = await supabase
     .from("messages")
     .select(
-      "id, workspace_id, sender_id, role, content, model, cost_cents, reasoning, created_at"
+      "id, workspace_id, sender_id, role, content, model, reasoning, created_at"
     )
     .eq("workspace_id", id)
     .order("created_at", { ascending: true })
@@ -244,6 +246,7 @@ export async function GET(
   const nameMap = await fetchSenderNames(supabase, messages || []);
   const result: MessageWithSender[] = (messages || []).map((m) => ({
     ...(m as Omit<MessageWithSender, "display_name">),
+    cost_cents: null,
     display_name:
       m.sender_id === null
         ? "AI Assistant"

@@ -152,7 +152,7 @@ describe("GET /api/workspaces/[id]/messages", () => {
         role: "assistant",
         content: "Hi there",
         model: "llama-3.3-70b-versatile",
-        cost_cents: 0,
+        cost_cents: 42,
         created_at: "2026-01-01T00:01:00Z",
       },
     ];
@@ -189,6 +189,9 @@ describe("GET /api/workspaces/[id]/messages", () => {
     expect(body.messages).toHaveLength(2);
     expect(body.messages[0].display_name).toBe("Test User");
     expect(body.messages[1].display_name).toBe("AI Assistant");
+    // Per-message costs are never exposed in the chat feed (issue #59).
+    expect(body.messages[0].cost_cents).toBeNull();
+    expect(body.messages[1].cost_cents).toBeNull();
   });
 
   it("returns 401 when not authenticated", async () => {
