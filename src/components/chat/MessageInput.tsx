@@ -58,7 +58,7 @@ export default function MessageInput({
           disabled={disabled}
           aria-label="Send message"
           title="Send"
-          className="absolute right-2 bottom-2 flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute top-1/2 right-2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {sending ? (
             <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
