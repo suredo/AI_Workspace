@@ -34,6 +34,14 @@ function MarkdownLink(props: ComponentProps<"a">) {
   return <a {...props} target="_blank" rel="noopener noreferrer" />;
 }
 
+function MarkdownTable({ children }: ComponentProps<"table">) {
+  return (
+    <div className="overflow-x-auto">
+      <table>{children}</table>
+    </div>
+  );
+}
+
 export default function MarkdownContent({
   content,
   streaming = false,
@@ -45,7 +53,7 @@ export default function MarkdownContent({
     <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        components={{ pre: CodeBlock, a: MarkdownLink }}
+        components={{ pre: CodeBlock, a: MarkdownLink, table: MarkdownTable }}
       >
         {content}
       </ReactMarkdown>
