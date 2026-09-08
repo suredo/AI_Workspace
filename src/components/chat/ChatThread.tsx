@@ -50,7 +50,7 @@ export default function ChatThread({
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6"
+      className="chat-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6"
     >
       <div className="mx-auto w-full max-w-4xl space-y-4">
       {messages.map((message) => (
