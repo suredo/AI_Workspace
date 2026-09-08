@@ -257,7 +257,7 @@ export default function ChatPanel({
         currentUserId={currentUserId}
       />
       <div className="shrink-0 px-4 py-4 md:px-6">
-        <div className="mx-auto w-full max-w-3xl">
+        <div className="mx-auto w-full max-w-4xl">
         {sendError && (
           <div className="mb-3 rounded-md bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300">
             {sendError}{" "}
