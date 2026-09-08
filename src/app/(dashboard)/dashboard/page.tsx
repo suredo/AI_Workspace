@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import CreateWorkspaceModal from "@/components/workspace/CreateWorkspaceModal";
 import type { WorkspaceWithMembers } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -11,9 +12,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,34 +38,6 @@ export default function DashboardPage() {
     load();
     return () => { cancelled = true; };
   }, []);
-
-  async function handleCreateWorkspace(e: React.FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    setCreateError(null);
-
-    try {
-      const res = await fetch("/api/workspaces", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newWorkspaceName }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create workspace");
-      }
-
-      const data = await res.json();
-      setShowCreateModal(false);
-      setNewWorkspaceName("");
-      router.push(`/workspaces/${data.workspace.id}`);
-    } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Failed to create workspace");
-    } finally {
-      setCreating(false);
-    }
-  }
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -161,54 +131,10 @@ export default function DashboardPage() {
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Create Workspace</h2>
-            <form onSubmit={handleCreateWorkspace} className="mt-4 space-y-4">
-              <div>
-                <label htmlFor="workspace-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Workspace Name
-                </label>
-                <input
-                  id="workspace-name"
-                  type="text"
-                  value={newWorkspaceName}
-                  onChange={(e) => setNewWorkspaceName(e.target.value)}
-                  required
-                  maxLength={100}
-                  className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="e.g. Study Group Alpha"
-                  autoFocus
-                />
-              </div>
-              {createError && (
-                <div className="rounded-md bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300">
-                  {createError}
-                </div>
-              )}
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setNewWorkspaceName("");
-                    setCreateError(null);
-                  }}
-                  className="rounded-md border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating || !newWorkspaceName.trim()}
-                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {creating ? "Creating..." : "Create"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <CreateWorkspaceModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={(id) => router.push(`/workspaces/${id}`)}
+        />
       )}
     </div>
   );

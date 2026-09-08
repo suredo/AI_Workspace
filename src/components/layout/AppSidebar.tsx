@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LogOut, Menu, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { LogOut, Menu, Plus, X } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import CreateWorkspaceModal from "@/components/workspace/CreateWorkspaceModal";
 import type { WorkspaceWithMembers } from "@/lib/types";
 import { signOutAction } from "@/app/(dashboard)/actions";
 
@@ -15,8 +16,10 @@ function workspaceIdFromPath(pathname: string): string | null {
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [workspaces, setWorkspaces] = useState<WorkspaceWithMembers[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
 
   const activeId = workspaceIdFromPath(pathname);
@@ -95,10 +98,19 @@ export default function AppSidebar() {
             <X className="h-5 w-5" aria-hidden />
           </button>
         </div>
-        <div className="px-4 py-2">
+        <div className="flex items-center justify-between px-4 py-2">
           <span className="text-xs font-semibold tracking-wider text-gray-500 uppercase dark:text-gray-400">
             Workspaces
           </span>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            aria-label="New workspace"
+            title="New workspace"
+            className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-800"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+          </button>
         </div>
         <nav aria-label="Workspaces" className="flex-1 space-y-1 overflow-y-auto px-2">
           {workspaces.length === 0 && (
@@ -137,6 +149,16 @@ export default function AppSidebar() {
           </button>
         </div>
       </aside>
+      {showCreateModal && (
+        <CreateWorkspaceModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={(id) => {
+            setShowCreateModal(false);
+            setMobileOpen(false);
+            router.push(`/workspaces/${id}`);
+          }}
+        />
+      )}
     </>
   );
 }
