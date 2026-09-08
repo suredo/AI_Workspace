@@ -525,7 +525,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
 
     expect(response.status).toBe(429);
     expect(body.error).toBe(
-      "You've reached your daily limit of $5.00. Resets tomorrow."
+      "You've reached your daily limit. Resets tomorrow."
     );
   });
 

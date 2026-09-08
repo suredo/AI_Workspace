@@ -3,11 +3,6 @@
 import type { MessageWithSender } from "@/lib/types";
 import MarkdownContent from "./MarkdownContent";
 
-function formatCost(costCents: number | null): string | null {
-  if (costCents === null) return null;
-  return `$${(costCents / 100).toFixed(2)}`;
-}
-
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleString(undefined, {
@@ -28,7 +23,6 @@ export default function MessageBubble({
   isOwn?: boolean;
 }) {
   const isUser = message.role === "user";
-  const cost = formatCost(message.cost_cents);
   // Reasoning traces and answers often carry boundary newlines around the
   // </think> tag; trim the edges so no blank gap renders while keeping
   // intentional line breaks inside the text (whitespace-pre-wrap).
@@ -89,11 +83,9 @@ export default function MessageBubble({
         ) : (
           <MarkdownContent content={content} streaming={streaming} />
         )}
-        {!isUser && (message.model || cost) && (
+        {!isUser && message.model && (
           <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
-            {message.model && <span>{message.model}</span>}
-            {message.model && cost && <span> &middot; </span>}
-            {cost && <span>{cost}</span>}
+            <span>{message.model}</span>
           </p>
         )}
       </div>

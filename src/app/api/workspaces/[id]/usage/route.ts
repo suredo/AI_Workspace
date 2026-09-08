@@ -63,9 +63,7 @@ export async function GET(
 
   return NextResponse.json({
     usage: {
-      used_cents: usedCents,
-      cap_cents: capCents,
-      remaining_cents: Math.max(capCents - usedCents, 0),
+      cap_reached: usedCents >= capCents,
     },
   });
 }

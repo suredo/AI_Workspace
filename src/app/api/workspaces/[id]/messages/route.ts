@@ -20,10 +20,6 @@ function todayUtcMidnightIso(): string {
   ).toISOString();
 }
 
-function formatDollars(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
 function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
@@ -365,7 +361,7 @@ export async function POST(
     });
     return NextResponse.json(
       {
-        error: `You've reached your daily limit of ${formatDollars(dailyCap)}. Resets tomorrow.`,
+        error: "You've reached your daily limit. Resets tomorrow.",
       },
       { status: 429 }
     );

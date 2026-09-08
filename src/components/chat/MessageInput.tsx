@@ -3,20 +3,14 @@
 import { useState } from "react";
 import { ArrowUp, LoaderCircle } from "lucide-react";
 
-function formatDollars(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
 export default function MessageInput({
   onSend,
   sending,
   capReached,
-  remainingCents,
 }: {
   onSend: (content: string) => void;
   sending: boolean;
   capReached: boolean;
-  remainingCents: number | null;
 }) {
   const [value, setValue] = useState("");
 
@@ -73,8 +67,6 @@ export default function MessageInput({
             <span className="font-medium text-red-600 dark:text-red-400">
               Daily limit reached. Resets tomorrow.
             </span>
-          ) : remainingCents !== null ? (
-            <span>{formatDollars(remainingCents)} remaining today</span>
           ) : null}
         </p>
         {sending && (
