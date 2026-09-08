@@ -10,9 +10,7 @@ const POLL_INTERVAL_MS = 10000;
 const STREAMING_PLACEHOLDER_ID = "streaming-ai-response";
 
 interface Usage {
-  used_cents: number;
-  cap_cents: number;
-  remaining_cents: number;
+  cap_reached: boolean;
 }
 
 export default function ChatPanel({
@@ -229,8 +227,7 @@ export default function ChatPanel({
     }
   }
 
-  const capReached =
-    usage !== null && usage.remaining_cents <= 0;
+  const capReached = usage !== null && usage.cap_reached;
 
   if (loading) {
     return (
@@ -275,7 +272,6 @@ export default function ChatPanel({
           onSend={handleSend}
           sending={streaming}
           capReached={capReached}
-          remainingCents={usage?.remaining_cents ?? null}
         />
         </div>
       </div>

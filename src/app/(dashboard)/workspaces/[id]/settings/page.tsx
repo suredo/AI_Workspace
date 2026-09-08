@@ -40,6 +40,14 @@ interface Invitation {
   created_by_name: string;
 }
 
+interface MemberUsage {
+  member_id: string;
+  user_id: string;
+  used_cents: number;
+  cap_cents: number;
+  remaining_cents: number;
+}
+
 const PROVIDER_DEFAULTS: Record<string, { baseUrl: string; model: string }> = {
   groq: { baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
@@ -86,6 +94,7 @@ export default function SettingsPage() {
   const [invitationsLoading, setInvitationsLoading] = useState(false);
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [memberUsage, setMemberUsage] = useState<Record<string, MemberUsage>>({});
 
 // Danger zone
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -369,6 +378,30 @@ export default function SettingsPage() {
     loadInvitations();
     return () => { cancelled = true; };
   }, [workspaceId, activeTab, canManageMembers]);
+
+  useEffect(() => {
+    if (!isOwner || activeTab !== "members") return;
+    let cancelled = false;
+    async function loadUsage() {
+      try {
+        const res = await fetch(`/api/workspaces/${workspaceId}/members-usage`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) {
+            const byMember: Record<string, MemberUsage> = {};
+            for (const u of (data.usage || []) as MemberUsage[]) {
+              byMember[u.member_id] = u;
+            }
+            setMemberUsage(byMember);
+          }
+        }
+      } catch {
+        // Usage is supplementary; table still renders caps without it.
+      }
+    }
+    loadUsage();
+    return () => { cancelled = true; };
+  }, [workspaceId, activeTab, isOwner]);
 
   async function handleCreateInvite() {
     setCreatingInvite(true);
@@ -676,7 +709,7 @@ export default function SettingsPage() {
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Members</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              {isOwner ? "Manage member roles, daily spending caps, and remove members." : "View members and update roles/caps."}
+              {isOwner ? "Manage member roles, daily spending caps, and remove members. Only you can see today's AI usage." : "View members and update roles/caps."}
             </p>
 
             <div className="overflow-x-auto">
@@ -686,6 +719,12 @@ export default function SettingsPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Member</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Daily Cap</th>
+                    {isOwner && (
+                      <>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Used Today</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Remaining</th>
+                      </>
+                    )}
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Joined</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -733,6 +772,16 @@ export default function SettingsPage() {
                           <span className="text-sm text-gray-900 dark:text-gray-100">{formatCap(member.daily_cap_cents)}</span>
                         )}
                       </td>
+                      {isOwner && (
+                        <>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            {memberUsage[member.id] ? formatCap(memberUsage[member.id].used_cents) : "—"}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            {memberUsage[member.id] ? formatCap(memberUsage[member.id].remaining_cents) : "—"}
+                          </td>
+                        </>
+                      )}
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(member.joined_at)}
                       </td>

@@ -20,10 +20,6 @@ function todayUtcMidnightIso(): string {
   ).toISOString();
 }
 
-function formatDollars(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
 function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
@@ -226,10 +222,12 @@ export async function GET(
     0
   );
 
+  // Per-message costs are never exposed in the chat feed (see issue #59):
+  // spend is only visible to the owner via the members-usage endpoint.
   const { data: messages, error: messagesError } = await supabase
     .from("messages")
     .select(
-      "id, workspace_id, sender_id, role, content, model, cost_cents, reasoning, created_at"
+      "id, workspace_id, sender_id, role, content, model, reasoning, created_at"
     )
     .eq("workspace_id", id)
     .order("created_at", { ascending: true })
@@ -248,6 +246,7 @@ export async function GET(
   const nameMap = await fetchSenderNames(supabase, messages || []);
   const result: MessageWithSender[] = (messages || []).map((m) => ({
     ...(m as Omit<MessageWithSender, "display_name">),
+    cost_cents: null,
     display_name:
       m.sender_id === null
         ? "AI Assistant"
@@ -365,7 +364,7 @@ export async function POST(
     });
     return NextResponse.json(
       {
-        error: `You've reached your daily limit of ${formatDollars(dailyCap)}. Resets tomorrow.`,
+        error: "You've reached your daily limit. Resets tomorrow.",
       },
       { status: 429 }
     );

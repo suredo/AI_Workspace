@@ -30,7 +30,7 @@ describe("GET /api/workspaces/[id]/usage", () => {
     mockAuth.mockResolvedValue({ user: { id: "user-123" } });
   });
 
-  it("returns used, cap, and remaining cents", async () => {
+  it("returns cap_reached false when under the cap", async () => {
     mockFrom = vi.fn()
       .mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
@@ -66,13 +66,11 @@ describe("GET /api/workspaces/[id]/usage", () => {
 
     expect(response.status).toBe(200);
     expect(body.usage).toEqual({
-      used_cents: 180,
-      cap_cents: 500,
-      remaining_cents: 320,
+      cap_reached: false,
     });
   });
 
-  it("clamps remaining at zero when over the cap", async () => {
+  it("returns cap_reached true when over the cap", async () => {
     mockFrom = vi.fn()
       .mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
@@ -107,8 +105,7 @@ describe("GET /api/workspaces/[id]/usage", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.usage.used_cents).toBe(250);
-    expect(body.usage.remaining_cents).toBe(0);
+    expect(body.usage).toEqual({ cap_reached: true });
   });
 
   it("returns 401 when not authenticated", async () => {
