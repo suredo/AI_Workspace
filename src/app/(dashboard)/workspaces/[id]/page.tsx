@@ -92,7 +92,7 @@ export default function WorkspaceDetailPage() {
     <div className="flex h-dvh flex-col">
       {/* Slim header: title left, controls right */}
       <div className="shrink-0 border-b border-gray-200 dark:border-gray-800 px-4 py-3 md:px-6">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-2">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-2">
           <div className="min-w-0 pl-10 md:pl-0">
             <h1 className="truncate text-lg font-semibold text-gray-900 dark:text-gray-100">{workspace.name}</h1>
           </div>
