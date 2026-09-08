@@ -249,15 +249,15 @@ export default function ChatPanel({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       <ChatThread
         messages={messages}
         streaming={streaming}
         streamingMessageId={streamingMessageId}
         currentUserId={currentUserId}
       />
-      <div className="shrink-0 px-4 py-4 md:px-6">
-        <div className="mx-auto w-full max-w-4xl">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6">
+        <div className="pointer-events-auto mx-auto w-full max-w-4xl rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg dark:border-gray-700 dark:bg-gray-900">
         {sendError && (
           <div className="mb-3 rounded-md bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300">
             {sendError}{" "}
