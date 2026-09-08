@@ -121,6 +121,103 @@ describe("GET /api/workspaces/[id]", () => {
     expect(body.workspace.name).toBe("Study Group");
     expect(body.workspace.members).toHaveLength(1);
     expect(body.workspace.current_user_membership.role).toBe("owner");
+    // Owners see daily caps.
+    expect(body.workspace.members[0].daily_cap_cents).toBe(500);
+  });
+
+  it("nulls daily caps when the requester is a regular member", async () => {
+    const workspace = {
+      id: "ws-123",
+      name: "Study Group",
+      owner_id: "user-999",
+      system_prompt: "You are helpful.",
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+    };
+
+    const membership = {
+      id: "mem-2",
+      role: "member",
+      daily_cap_cents: 500,
+      joined_at: "2026-01-01T00:00:00Z",
+    };
+
+    const members = [
+      {
+        id: "mem-1",
+        user_id: "user-999",
+        role: "owner",
+        daily_cap_cents: 1000,
+        joined_at: "2026-01-01T00:00:00Z",
+      },
+      {
+        id: "mem-2",
+        user_id: "user-123",
+        role: "member",
+        daily_cap_cents: 500,
+        joined_at: "2026-01-01T00:00:00Z",
+      },
+    ];
+
+    const users = [
+      {
+        id: "user-999",
+        display_name: "Owner User",
+        email: "owner@example.com",
+      },
+      {
+        id: "user-123",
+        display_name: "Test User",
+        email: "test@example.com",
+      },
+    ];
+
+    mockFrom = vi.fn()
+      // Membership check
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: membership, error: null }),
+            }),
+          }),
+        }),
+      })
+      // Workspace fetch
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: workspace, error: null }),
+          }),
+        }),
+      })
+      // Members fetch
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: members, error: null }),
+        }),
+      })
+      // Users fetch
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          in: vi.fn().mockResolvedValue({ data: users, error: null }),
+        }),
+      });
+
+    mockSupabase.from = mockFrom;
+
+    const request = makeGetRequest();
+    const response = await GET(request, { params: Promise.resolve({ id: "ws-123" }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.workspace.members).toHaveLength(2);
+    // Regular members see no caps at all — not even their own (issue #61).
+    expect(body.workspace.members[0].daily_cap_cents).toBeNull();
+    expect(body.workspace.members[1].daily_cap_cents).toBeNull();
+    // Names and roles are still visible.
+    expect(body.workspace.members[0].display_name).toBe("Owner User");
+    expect(body.workspace.members[1].role).toBe("member");
   });
 
   it("returns 401 when not authenticated", async () => {

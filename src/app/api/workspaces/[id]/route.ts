@@ -76,6 +76,10 @@ export async function GET(
     }
   }
 
+  // Daily caps are only visible to owners and admins (see issue #61).
+  const canSeeCaps =
+    membership.role === "owner" || membership.role === "admin";
+
   const result = {
     ...workspace,
     current_user_membership: membership,
@@ -83,7 +87,7 @@ export async function GET(
       id: m.id,
       user_id: m.user_id,
       role: m.role,
-      daily_cap_cents: m.daily_cap_cents,
+      daily_cap_cents: canSeeCaps ? m.daily_cap_cents : null,
       joined_at: m.joined_at,
       display_name: userMap[m.user_id]?.display_name || "Unknown",
       email: userMap[m.user_id]?.email || "",

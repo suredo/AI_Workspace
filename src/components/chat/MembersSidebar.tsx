@@ -7,7 +7,7 @@ export interface Member {
   id: string;
   user_id: string;
   role: string;
-  daily_cap_cents: number;
+  daily_cap_cents: number | null;
   display_name: string;
   email: string;
 }
@@ -109,9 +109,11 @@ export default function MembersSidebar({
                 >
                   {member.role}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatCap(member.daily_cap_cents)}
-                </span>
+                {member.daily_cap_cents !== null && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {formatCap(member.daily_cap_cents)}
+                  </span>
+                )}
               </div>
             </li>
           ))}
