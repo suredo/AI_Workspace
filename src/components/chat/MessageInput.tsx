@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowUp, LoaderCircle } from "lucide-react";
 
 function formatDollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -55,9 +56,15 @@ export default function MessageInput({
         <button
           onClick={handleSend}
           disabled={disabled}
-          className="self-end rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label="Send message"
+          title="Send"
+          className="flex h-9 w-9 shrink-0 items-center justify-center self-end rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {sending ? "Sending..." : "Send"}
+          {sending ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
+          ) : (
+            <ArrowUp className="h-4 w-4" aria-hidden />
+          )}
         </button>
       </div>
       <div className="mt-2 flex items-center justify-between">
