@@ -92,6 +92,56 @@ describe("GET /api/workspaces/[id]/members", () => {
     expect(body.members[0].display_name).toBe("Owner User");
     expect(body.members[1].role).toBe("member");
     expect(body.members[1].display_name).toBe("Member User");
+    // Regular members see no daily caps (issue #61).
+    expect(body.members[0].daily_cap_cents).toBeNull();
+    expect(body.members[1].daily_cap_cents).toBeNull();
+  });
+
+  it("returns daily caps for owner and admin", async () => {
+    const members = [
+      { id: "mem-1", user_id: "user-123", role: "owner", daily_cap_cents: 1000, joined_at: "2026-01-01T00:00:00Z" },
+      { id: "mem-2", user_id: "user-456", role: "member", daily_cap_cents: 500, joined_at: "2026-01-01T00:00:00Z" },
+    ];
+    const users = [
+      { id: "user-123", display_name: "Owner User", email: "owner@example.com" },
+      { id: "user-456", display_name: "Member User", email: "member@example.com" },
+    ];
+
+    for (const role of ["owner", "admin"]) {
+      mockFrom = vi.fn()
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: "mem-9", role }, error: null }),
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: members, error: null }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: users, error: null }),
+          }),
+        });
+
+      mockSupabase.from = mockFrom;
+
+      const { GET } = await import("@/app/api/workspaces/[id]/members/route");
+      const response = await GET(
+        new Request("http://localhost:3000/api/workspaces/ws-123/members"),
+        { params: Promise.resolve({ id: "ws-123" }) }
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.members[0].daily_cap_cents).toBe(1000);
+      expect(body.members[1].daily_cap_cents).toBe(500);
+    }
   });
 
   it("returns 401 when not authenticated", async () => {
