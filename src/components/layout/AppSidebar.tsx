@@ -18,16 +18,9 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopCollapsed, setDesktopCollapsed] = useState<boolean>(() => {
-    try {
-      return (
-        typeof window !== "undefined" &&
-        window.localStorage.getItem("app-sidebar-collapsed") === "1"
-      );
-    } catch {
-      return false;
-    }
-  });
+  // Default expanded so server and client render the same HTML; the stored
+  // preference is applied after hydration to avoid a hydration mismatch.
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const [workspaces, setWorkspaces] = useState<WorkspaceWithMembers[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
@@ -55,6 +48,19 @@ export default function AppSidebar() {
     // Refetch on navigation: the layout persists across client-side route
     // changes, so a freshly created workspace would otherwise stay invisible.
   }, [pathname]);
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("app-sidebar-collapsed") === "1") {
+        // Sync-on-mount from storage: intentional, keeps SSR and first
+        // client render identical (expanded) to avoid a hydration mismatch.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDesktopCollapsed(true);
+      }
+    } catch {
+      // Persistence is best-effort; the sidebar stays expanded.
+    }
+  }, []);
 
   useEffect(() => {
     // DOM sync only (no setState): move focus into the drawer when it opens.
@@ -202,7 +208,7 @@ export default function AppSidebar() {
                     aria-current={active ? "page" : undefined}
                     title={workspace.name}
                     aria-label={workspace.name}
-                    className={`mt-1 hidden justify-center rounded-md px-2 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:flex ${itemClass}`}
+                    className={`hidden justify-center rounded-md px-2 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:flex ${itemClass}`}
                   >
                     <span aria-hidden>
                       {workspace.name.charAt(0).toUpperCase()}
