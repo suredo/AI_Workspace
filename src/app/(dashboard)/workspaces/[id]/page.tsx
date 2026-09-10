@@ -69,7 +69,7 @@ export default function WorkspaceDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <div className="text-gray-500 dark:text-gray-400">Loading workspace...</div>
       </div>
     );
@@ -77,7 +77,7 @@ export default function WorkspaceDetailPage() {
 
   if (error || !workspace) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-600 dark:text-red-400">{error || "Workspace not found"}</p>
           <Link href="/dashboard" className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 text-sm">
@@ -89,7 +89,7 @@ export default function WorkspaceDetailPage() {
   }
 
   return (
-    <div className="flex h-dvh flex-col">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* Slim header: title left, controls right */}
       <div className="shrink-0 border-b border-gray-200 dark:border-gray-800 px-4 py-3 md:px-6">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-2">
