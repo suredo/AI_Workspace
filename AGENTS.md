@@ -159,8 +159,8 @@ Key implementation details (if non-obvious).
 
 - Keep PRs focused — one feature or fix per PR
 - PRs should be under 400 lines of diff when possible
-- All CI checks must pass (lint, build)
-- At least one review before merge
+- All CI checks must pass (lint, test, build)
+- At least one review before merge when a second collaborator exists; otherwise green CI is the merge gate (GitHub does not count self-approvals)
 - Squash merge into `main`
 
 ## Environment Variables
