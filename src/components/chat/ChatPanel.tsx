@@ -231,7 +231,7 @@ export default function ChatPanel({
 
   if (loading) {
     return (
-      <div className="flex min-h-64 flex-1 items-center justify-center text-gray-400 dark:text-gray-500">
+      <div className="flex min-h-64 flex-1 items-center justify-center text-muted">
         <p className="text-sm">Loading messages...</p>
       </div>
     );
@@ -240,7 +240,7 @@ export default function ChatPanel({
   if (loadError) {
     return (
       <div className="flex min-h-64 flex-1 items-center justify-center">
-        <p className="text-sm text-red-600 dark:text-red-400">{loadError}</p>
+        <p className="text-sm text-red-600 dark:text-red-300">{loadError}</p>
       </div>
     );
   }
@@ -256,7 +256,7 @@ export default function ChatPanel({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6">
         <div className="pointer-events-auto mx-auto w-full max-w-4xl py-3">
         {sendError && (
-          <div className="mb-3 rounded-md bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300">
+          <div className="mb-3 rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-300">
             {sendError}{" "}
             {sendError.toLowerCase().includes("configur") && (
               <Link
