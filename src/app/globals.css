@@ -9,24 +9,90 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* App surfaces */
+  --color-app: var(--app);
+  --color-sidebar: var(--sidebar);
+  --color-elevated: var(--elevated);
+  --color-hover: var(--hover);
+
+  /* Borders / dividers */
+  --color-line: var(--line);
+  --color-divider: var(--divider);
+
+  /* Typography */
+  --color-ink: var(--ink);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-disabled: var(--disabled);
+
+  /* Primary accent (violet) */
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-wash: var(--accent-wash);
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f8fa;
+  --foreground: #171a21;
+
+  --app: #f7f8fa;
+  --sidebar: #ffffff;
+  --elevated: #f0f2f5;
+  --hover: #e8ebf0;
+
+  --line: #dde1e7;
+  --divider: #e7e9ed;
+
+  --ink: #171a21;
+  --secondary: #687080;
+  --muted: #9299a6;
+  --disabled: #b2b8c2;
+
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-active: #7c3aed;
+  --accent-wash: rgba(124, 58, 237, 0.08);
+
   color-scheme: light;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #05070d;
+  --foreground: #f5f7fa;
+
+  --app: #05070d;
+  --sidebar: #080b11;
+  --elevated: #0d1118;
+  --hover: #141922;
+
+  --line: #171d29;
+  --divider: #111722;
+
+  --ink: #f5f7fa;
+  --secondary: #a1a8b3;
+  --muted: #687280;
+  --disabled: #48515f;
+
+  --accent: #8b5cf6;
+  --accent-hover: #a78bfa;
+  --accent-active: #7c3aed;
+  --accent-wash: rgba(139, 92, 246, 0.1);
+
   color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-geist-sans),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
 }
 
 /* Thin themed scrollbar for the chat thread (Firefox + webkit).
@@ -34,7 +100,7 @@ body {
    thread stays aligned with the message input (which has no gutter). */
 .chat-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #d1d5db transparent;
+  scrollbar-color: #cdc9dc transparent;
   scrollbar-gutter: stable both-edges;
 }
 .chat-scroll::-webkit-scrollbar {
@@ -44,18 +110,18 @@ body {
   background: transparent;
 }
 .chat-scroll::-webkit-scrollbar-thumb {
-  background-color: #d1d5db;
+  background-color: #cdc9dc;
   border-radius: 9999px;
 }
 .chat-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: #9ca3af;
+  background-color: #b3abc9;
 }
 .dark .chat-scroll {
-  scrollbar-color: #4b5563 transparent;
+  scrollbar-color: #3b3552 transparent;
 }
 .dark .chat-scroll::-webkit-scrollbar-thumb {
-  background-color: #4b5563;
+  background-color: #3b3552;
 }
 .dark .chat-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: #6b7280;
+  background-color: #4a4365;
 }
