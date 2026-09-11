@@ -254,7 +254,7 @@ export default function ChatPanel({
         currentUserId={currentUserId}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-app via-app/80 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6">
-        <div className="pointer-events-auto mx-auto w-full max-w-4xl py-3">
+        <div className="pointer-events-auto mx-auto w-full max-w-[min(92%,100rem)] py-3">
         {sendError && (
           <div className="mb-3 rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-300">
             {sendError}{" "}
