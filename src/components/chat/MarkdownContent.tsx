@@ -171,7 +171,7 @@ export default function MarkdownContent({
     <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight, rehypeCodeLines]}
+        rehypePlugins={[[rehypeHighlight, { detect: true }], rehypeCodeLines]}
         components={{ pre: CodeBlock, a: MarkdownLink, table: MarkdownTable }}
       >
         {content}

@@ -55,20 +55,33 @@
   --accent-active: #7c3aed;
   --accent-wash: rgba(124, 58, 237, 0.08);
 
+  /* Code highlight tokens (light surfaces) */
+  --hl-base: #1f2937;
+  --hl-keyword: #7c3aed;
+  --hl-string: #15803d;
+  --hl-number: #b45309;
+  --hl-title: #6d28d9;
+  --hl-type: #0369a1;
+  --hl-var: #1f2937;
+  --hl-operator: #5b6472;
+  --hl-comment: #9299a6;
+  --hl-addition: #15803d;
+  --hl-deletion: #dc2626;
+
   color-scheme: light;
 }
 
 .dark {
-  --background: #05070d;
+  --background: #020409;
   --foreground: #f5f7fa;
 
-  --app: #05070d;
-  --sidebar: #080b11;
-  --elevated: #0d1118;
-  --hover: #141922;
+  --app: #020409;
+  --sidebar: #05070d;
+  --elevated: #0a0e16;
+  --hover: #10141d;
 
-  --line: #171d29;
-  --divider: #111722;
+  --line: #141a26;
+  --divider: #0d1219;
 
   --ink: #f5f7fa;
   --secondary: #a1a8b3;
@@ -79,6 +92,19 @@
   --accent-hover: #a78bfa;
   --accent-active: #7c3aed;
   --accent-wash: rgba(139, 92, 246, 0.1);
+
+  /* Code highlight tokens (dark surfaces) */
+  --hl-base: #f0f3f8;
+  --hl-keyword: #c4b5fd;
+  --hl-string: #9ecea5;
+  --hl-number: #f0b46c;
+  --hl-title: #e9d5ff;
+  --hl-type: #7dd3fc;
+  --hl-var: #f0f3f8;
+  --hl-operator: #b6bcc7;
+  --hl-comment: #687280;
+  --hl-addition: #9ecea5;
+  --hl-deletion: #f19494;
 
   color-scheme: dark;
 }
@@ -140,7 +166,7 @@ body {
   --tw-prose-quote-borders: var(--line);
   --tw-prose-captions: var(--muted);
   --tw-prose-code: var(--ink);
-  --tw-prose-pre-code: #e6e9ef;
+  --tw-prose-pre-code: var(--hl-base);
   --tw-prose-pre-bg: transparent;
   --tw-prose-th-borders: var(--line);
   --tw-prose-td-borders: var(--line);
@@ -156,7 +182,7 @@ body {
   --tw-prose-invert-quote-borders: var(--line);
   --tw-prose-invert-captions: var(--muted);
   --tw-prose-invert-code: var(--ink);
-  --tw-prose-invert-pre-code: #e6e9ef;
+  --tw-prose-invert-pre-code: var(--hl-base);
   --tw-prose-invert-pre-bg: transparent;
   --tw-prose-invert-th-borders: var(--line);
   --tw-prose-invert-td-borders: var(--line);
@@ -251,41 +277,42 @@ body {
   -webkit-user-select: none;
 }
 
-/* Restrained violet-tinted highlight theme (both app themes). */
+/* Restrained violet-tinted highlight theme. Surfaces differ per app
+   theme, so every token resolves through --hl-* vars defined above. */
 .hljs {
-  color: #e6e9ef;
+  color: var(--hl-base);
   background: transparent;
 }
 .hljs-comment,
 .hljs-quote {
-  color: var(--muted);
+  color: var(--hl-comment);
   font-style: italic;
 }
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-doctag,
 .hljs-template-tag {
-  color: #c4b5fd;
+  color: var(--hl-keyword);
 }
 .hljs-string,
 .hljs-regexp,
 .hljs-meta .hljs-string {
-  color: #9ecea5;
+  color: var(--hl-string);
 }
 .hljs-number,
 .hljs-literal {
-  color: #f0b46c;
+  color: var(--hl-number);
 }
 .hljs-title,
 .hljs-title.function_,
 .hljs-section {
-  color: #a78bfa;
+  color: var(--hl-title);
 }
 .hljs-title.class_,
 .hljs-type,
 .hljs-built_in,
 .hljs-builtin-name {
-  color: #7dd3fc;
+  color: var(--hl-type);
 }
 .hljs-attr,
 .hljs-attribute,
@@ -294,14 +321,17 @@ body {
 .hljs-name,
 .hljs-selector-id,
 .hljs-selector-class {
-  color: #e6e9ef;
+  color: var(--hl-var);
+}
+.hljs-params {
+  color: var(--hl-var);
 }
 .hljs-symbol,
 .hljs-bullet,
 .hljs-link,
 .hljs-operator,
 .hljs-punctuation {
-  color: #a1a8b3;
+  color: var(--hl-operator);
 }
 .hljs-emphasis {
   font-style: italic;
@@ -310,8 +340,8 @@ body {
   font-weight: 700;
 }
 .hljs-addition {
-  color: #9ecea5;
+  color: var(--hl-addition);
 }
 .hljs-deletion {
-  color: #f19494;
+  color: var(--hl-deletion);
 }
