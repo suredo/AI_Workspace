@@ -342,13 +342,13 @@ export default function SettingsPage() {
     return `Expires in ${daysLeft} days`;
   }
 
-  function roleBadge(role: string) {
+  function roleDot(role: string) {
     const colors: Record<string, string> = {
-      owner: "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200",
-      admin: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
-      member: "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200",
+      owner: "bg-accent",
+      admin: "bg-sky-400",
+      member: "bg-muted/50",
     };
-    return colors[role] || "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200";
+    return colors[role] || "bg-muted/50";
   }
 
   const isOwner = workspace?.current_user_membership.role === "owner";
@@ -431,7 +431,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="text-center text-gray-500 dark:text-gray-400">Loading settings...</div>
+        <div className="text-center text-sm text-muted">Loading settings...</div>
       </div>
     );
   }
@@ -439,8 +439,8 @@ export default function SettingsPage() {
   if (error || !workspace) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 text-center">
-        <p className="text-red-600 dark:text-red-400">{error || "Workspace not found"}</p>
-        <Link href="/dashboard" className="mt-4 text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300">
+        <p className="text-sm text-red-600 dark:text-red-300">{error || "Workspace not found"}</p>
+        <Link href="/dashboard" className="mt-4 block text-sm text-accent hover:text-accent-hover">
           Back to Dashboard
         </Link>
       </div>
@@ -457,13 +457,13 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <Link href={`/workspaces/${workspaceId}`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 block pl-10 md:pl-0">
+        <Link href={`/workspaces/${workspaceId}`} className="text-sm text-muted hover:text-secondary mb-4 block pl-10 md:pl-0">
           ← Back to Workspace
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings: {workspace.name}</h1>
+        <h1 className="text-2xl font-semibold text-ink">Settings: {workspace.name}</h1>
       </div>
 
-      <div className="border-b border-gray-200 dark:border-gray-800 mb-8">
+      <div className="border-b border-line mb-8">
         <nav className="flex gap-8" aria-label="Settings tabs">
           {tabs.map((tab) => (
             <button
@@ -472,10 +472,10 @@ export default function SettingsPage() {
               disabled={tab.disabled}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === tab.id
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                  ? "border-accent text-accent"
                   : tab.disabled
-                  ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300"
+                  ? "text-disabled cursor-not-allowed border-transparent"
+                  : "text-muted hover:text-secondary hover:border-line border-transparent"
               }`}
             >
               {tab.label}
@@ -485,24 +485,24 @@ export default function SettingsPage() {
       </div>
 
       {saveSuccess && (
-        <div className="mb-6 rounded-md bg-green-50 dark:bg-green-950 p-4 text-sm text-green-700 dark:text-green-300">
+        <div className="mb-6 rounded border border-green-500/20 bg-green-500/10 p-4 text-sm text-green-600 dark:text-green-300">
           Saved successfully!
         </div>
       )}
 
       {saveError && (
-        <div className="mb-6 rounded-md bg-red-50 dark:bg-red-950 p-4 text-sm text-red-700 dark:text-red-300">
+        <div className="mb-6 rounded border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-300">
           {saveError}
         </div>
       )}
 
       {activeTab === "general" && (
         <div className="space-y-6">
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">General Settings</h2>
+          <div className="rounded-lg border border-line bg-elevated p-6">
+            <h2 className="text-base font-semibold text-ink mb-4">General Settings</h2>
             <div className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="name" className="block text-sm font-medium text-secondary">
                   Workspace Name
                 </label>
                 <input
@@ -510,12 +510,12 @@ export default function SettingsPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded border border-line bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                   maxLength={100}
                 />
               </div>
               <div>
-                <label htmlFor="system_prompt" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="system_prompt" className="block text-sm font-medium text-secondary">
                   System Prompt
                 </label>
                 <textarea
@@ -523,14 +523,14 @@ export default function SettingsPage() {
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
                   rows={6}
-                  className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded border border-line bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400">This prompt sets the AI&apos;s personality for all conversations in this workspace.</p>
+                <p className="text-xs text-muted">This prompt sets the AI&apos;s personality for all conversations in this workspace.</p>
               </div>
               <button
                 onClick={handleGeneralSave}
                 disabled={saving}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
@@ -541,22 +541,22 @@ export default function SettingsPage() {
 
       {activeTab === "ai-provider" && (
         <div className="space-y-6">
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">AI Provider Configuration</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          <div className="rounded-lg border border-line bg-elevated p-6">
+            <h2 className="text-base font-semibold text-ink mb-4">AI Provider Configuration</h2>
+            <p className="text-sm text-secondary mb-6">
               Configure the AI provider for this workspace. Only the workspace owner can change these settings.
             </p>
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="provider" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="provider" className="block text-sm font-medium text-secondary">
                   Provider
                 </label>
                 <select
                   id="provider"
                   value={provider}
                   onChange={(e) => handleProviderChange(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded border border-line bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                 >
                   <option value="groq">Groq</option>
                   <option value="openai">OpenAI</option>
@@ -568,7 +568,7 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label htmlFor="baseUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="baseUrl" className="block text-sm font-medium text-secondary">
                   Base URL
                 </label>
                 <input
@@ -576,13 +576,13 @@ export default function SettingsPage() {
                   type="url"
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded border border-line bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                   placeholder="https://api.example.com/v1"
                 />
               </div>
 
               <div>
-                <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="apiKey" className="block text-sm font-medium text-secondary">
                   API Key
                 </label>
                 <div className="mt-1 flex gap-2">
@@ -591,18 +591,18 @@ export default function SettingsPage() {
                     type={showApiKey ? "text" : "password"}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    className="flex-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 rounded border border-line bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                     placeholder={config?.llm_api_key_set ? "•••••••• (leave blank to keep current)" : "Enter your API key"}
                   />
                   <button
                     type="button"
                     onClick={() => setShowApiKey(!showApiKey)}
-                    className="rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    className="rounded border border-line px-3 py-2 text-sm font-medium text-secondary hover:bg-hover hover:text-ink"
                   >
                     {showApiKey ? "Hide" : "Show"}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-xs text-muted">
                   {config?.llm_api_key_set
                     ? "API key is configured. Leave blank to keep the current key — Test Connection will use the saved key."
                     : "No API key configured."}
@@ -610,7 +610,7 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label htmlFor="model" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="model" className="block text-sm font-medium text-secondary">
                   Model
                 </label>
                 <input
@@ -618,7 +618,7 @@ export default function SettingsPage() {
                   type="text"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded border border-line bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                   placeholder="e.g., llama-3.3-70b-versatile"
                 />
               </div>
@@ -631,14 +631,14 @@ export default function SettingsPage() {
                     !baseUrl.trim() ||
                     (!apiKey.trim() && !config?.llm_api_key_set)
                   }
-                  className="rounded-md border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+                  className="rounded border border-line px-4 py-2 text-sm font-medium text-secondary hover:bg-hover hover:text-ink disabled:opacity-50"
                 >
                   {testingConnection ? "Testing..." : "Test Connection"}
                 </button>
                 <button
                   onClick={handleProviderSave}
                   disabled={saving}
-                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? "Saving..." : "Save Provider"}
                 </button>
@@ -647,7 +647,7 @@ export default function SettingsPage() {
               {testResult && (
                 <div
                   className={`mt-4 rounded-md p-4 text-sm ${
-                    testResult.success ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300" : "bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300"
+                    testResult.success ? "bg-green-500/10 text-green-600 dark:text-green-300" : "bg-red-500/10 text-red-600 dark:text-red-300"
                   }`}
                 >
                   {testResult.message}
@@ -660,43 +660,43 @@ export default function SettingsPage() {
 
       {activeTab === "members" && canManageMembers && (
         <div className="space-y-6">
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+          <div className="rounded-lg border border-line bg-elevated p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Invitations</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <h2 className="text-base font-semibold text-ink">Invitations</h2>
+                <p className="mt-1 text-sm text-secondary">
                   Share an invite link with new members. Links expire after 7 days.
                 </p>
               </div>
               <button
                 onClick={handleCreateInvite}
                 disabled={creatingInvite}
-                className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               >
                 {creatingInvite ? "Creating..." : "Invite"}
               </button>
             </div>
 
             {invitationsLoading ? (
-              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+              <p className="mt-4 text-sm text-muted">Loading...</p>
             ) : invitations.length === 0 ? (
-              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No pending invitations</p>
+              <p className="mt-4 text-sm text-muted">No pending invitations</p>
             ) : (
               <ul className="mt-4 space-y-3">
                 {invitations.map((inv) => (
-                  <li key={inv.id} className="rounded-md bg-gray-50 dark:bg-gray-800 p-3">
+                  <li key={inv.id} className="rounded bg-hover p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-secondary">
                           Created by {inv.created_by_name}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-muted">
                           {formatExpiry(inv.expires_at)}
                         </p>
                       </div>
                       <button
                         onClick={() => copyInviteLink(inv.token)}
-                        className="rounded-md border border-gray-300 dark:border-gray-700 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        className="rounded border border-line px-2 py-1 text-xs font-medium text-secondary hover:bg-app hover:text-ink"
                       >
                         {copiedToken === inv.token ? "Copied!" : "Copy link"}
                       </button>
@@ -706,36 +706,36 @@ export default function SettingsPage() {
               </ul>
             )}
           </div>
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Members</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          <div className="rounded-lg border border-line bg-elevated p-6">
+            <h2 className="text-base font-semibold text-ink mb-4">Members</h2>
+            <p className="text-sm text-secondary mb-6">
               {isOwner ? "Manage member roles, daily spending caps, and remove members. Only you can see today's AI usage." : "View members and update roles/caps."}
             </p>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
+              <table className="min-w-full divide-y divide-line">
+                <thead className="bg-hover/50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Member</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Daily Cap</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Member</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Role</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Daily Cap</th>
                     {isOwner && (
                       <>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Used Today</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Remaining</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Used Today</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Remaining</th>
                       </>
                     )}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Joined</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Joined</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-line">
                   {members.map((member) => (
                     <tr key={member.id}>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{member.display_name}</div>
-                          <div className="ml-3 text-sm text-gray-500 dark:text-gray-400">{member.email}</div>
+                          <div className="text-sm font-medium text-ink">{member.display_name}</div>
+                          <div className="ml-3 text-sm text-muted">{member.email}</div>
                         </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
@@ -744,7 +744,7 @@ export default function SettingsPage() {
                             value={editRole}
                             onChange={(e) => setEditRole(e.target.value as "admin" | "member")}
                             disabled={!isOwner || member.user_id === workspace?.owner_id}
-                            className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="rounded border border-line bg-app px-2 py-1 text-sm text-ink focus:border-accent focus:outline-none"
                           >
                             {ROLE_OPTIONS.map((role) => (
                               <option key={role} value={role}>
@@ -753,7 +753,8 @@ export default function SettingsPage() {
                             ))}
                           </select>
                         ) : (
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${roleBadge(member.role)}`}>
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-secondary">
+                            <span className={`h-1.5 w-1.5 rounded-full ${roleDot(member.role)}`} aria-hidden />
                             {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
                           </span>
                         )}
@@ -766,23 +767,23 @@ export default function SettingsPage() {
                             onChange={(e) => setEditCap(parseInt(e.target.value) || 0)}
                             min={0}
                             step={100}
-                            className="w-24 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-24 rounded border border-line bg-app px-2 py-1 text-sm text-ink focus:border-accent focus:outline-none"
                           />
                         ) : (
-                          <span className="text-sm text-gray-900 dark:text-gray-100">{formatCap(member.daily_cap_cents)}</span>
+                          <span className="font-mono text-sm text-ink">{formatCap(member.daily_cap_cents)}</span>
                         )}
                       </td>
                       {isOwner && (
                         <>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-ink">
                             {memberUsage[member.id] ? formatCap(memberUsage[member.id].used_cents) : "—"}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-ink">
                             {memberUsage[member.id] ? formatCap(memberUsage[member.id].remaining_cents) : "—"}
                           </td>
                         </>
                       )}
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted">
                         {formatDate(member.joined_at)}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -790,13 +791,13 @@ export default function SettingsPage() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={saveMemberEdit}
-                              className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                              className="rounded bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent-hover"
                             >
                               Save
                             </button>
                             <button
                               onClick={() => setEditingMemberId(null)}
-                              className="rounded-md border border-gray-300 dark:border-gray-700 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                              className="rounded border border-line px-3 py-1 text-xs font-medium text-secondary hover:bg-hover hover:text-ink"
                             >
                               Cancel
                             </button>
@@ -806,7 +807,7 @@ export default function SettingsPage() {
                             {canManageMembers && member.role !== "owner" && member.id !== workspace?.current_user_membership?.id && (
                               <button
                                 onClick={() => startEditMember(member)}
-                                className="rounded-md border border-gray-300 dark:border-gray-700 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                className="rounded border border-line px-3 py-1 text-xs font-medium text-secondary hover:bg-hover hover:text-ink"
                               >
                                 Edit
                               </button>
@@ -814,7 +815,7 @@ export default function SettingsPage() {
                             {isOwner && member.role !== "owner" && member.user_id !== workspace?.owner_id && (
                               <button
                                 onClick={() => removeMember(member.id)}
-                                className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+                                className="rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-500"
                               >
                                 Remove
                               </button>
@@ -833,9 +834,9 @@ export default function SettingsPage() {
 
       {activeTab === "danger-zone" && isOwner && (
         <div className="space-y-6">
-          <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-4">Danger Zone</h2>
-            <p className="text-sm text-red-700 dark:text-red-300 mb-6">
+          <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-6">
+            <h2 className="text-base font-semibold text-red-600 dark:text-red-300 mb-4">Danger Zone</h2>
+            <p className="text-sm text-red-600/80 dark:text-red-300/80 mb-6">
               Once you delete this workspace, there is no going back. All messages, members, and settings will be permanently deleted.
             </p>
 
@@ -845,15 +846,15 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={confirmDelete}
                   onChange={(e) => setConfirmDelete(e.target.checked)}
-                  className="rounded border-gray-300 dark:border-gray-700 text-red-600 dark:text-red-400 focus:ring-red-500"
+                  className="h-4 w-4 rounded accent-red-500"
                 />
-                <span className="text-sm text-red-700 dark:text-red-300">I understand this action is irreversible</span>
+                <span className="text-sm text-red-600 dark:text-red-300">I understand this action is irreversible</span>
               </label>
 
               <button
                 onClick={handleDeleteWorkspace}
                 disabled={!confirmDelete}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Delete Workspace
               </button>
@@ -863,20 +864,20 @@ export default function SettingsPage() {
       )}
 
       {activeTab === "ai-provider" && !canManageProvider && (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm text-center">
-          <p className="text-gray-500 dark:text-gray-400">Only the workspace owner can configure the AI provider.</p>
+        <div className="rounded-lg border border-line bg-elevated p-6 text-center">
+          <p className="text-sm text-muted">Only the workspace owner can configure the AI provider.</p>
         </div>
       )}
 
       {activeTab === "members" && !canManageMembers && (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm text-center">
-          <p className="text-gray-500 dark:text-gray-400">Only owners and admins can manage members.</p>
+        <div className="rounded-lg border border-line bg-elevated p-6 text-center">
+          <p className="text-sm text-muted">Only owners and admins can manage members.</p>
         </div>
       )}
 
       {activeTab === "danger-zone" && !isOwner && (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm text-center">
-          <p className="text-gray-500 dark:text-gray-400">Only the workspace owner can access the danger zone.</p>
+        <div className="rounded-lg border border-line bg-elevated p-6 text-center">
+          <p className="text-sm text-muted">Only the workspace owner can access the danger zone.</p>
         </div>
       )}
     </div>

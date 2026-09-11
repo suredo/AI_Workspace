@@ -94,10 +94,10 @@ function RegisterForm() {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm">
+    <div className="rounded-lg border border-line bg-elevated p-8">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Create Account</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <h1 className="text-2xl font-bold text-ink">Create Account</h1>
+        <p className="mt-1 text-sm text-secondary">
           Join AI Workspace to collaborate with your team
         </p>
       </div>
@@ -106,7 +106,7 @@ function RegisterForm() {
         <div>
           <label
             htmlFor="displayName"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="block text-sm font-medium text-secondary"
           >
             Display Name
           </label>
@@ -115,23 +115,23 @@ function RegisterForm() {
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className={`mt-1 block w-full rounded-md border bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 ${
+            className={`mt-1 block w-full rounded border bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none ${
               errors.displayName
-                ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
+                ? "border-red-500 focus:border-red-500"
+                : "border-line focus:border-accent"
             }`}
             placeholder="Your name"
             disabled={isSubmitting}
           />
           {errors.displayName && (
-            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.displayName}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-300">{errors.displayName}</p>
           )}
         </div>
 
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="block text-sm font-medium text-secondary"
           >
             Email
           </label>
@@ -140,23 +140,23 @@ function RegisterForm() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={`mt-1 block w-full rounded-md border bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 ${
+            className={`mt-1 block w-full rounded border bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none ${
               errors.email
-                ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
+                ? "border-red-500 focus:border-red-500"
+                : "border-line focus:border-accent"
             }`}
             placeholder="you@example.com"
             disabled={isSubmitting}
           />
           {errors.email && (
-            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.email}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-300">{errors.email}</p>
           )}
         </div>
 
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="block text-sm font-medium text-secondary"
           >
             Password
           </label>
@@ -165,21 +165,21 @@ function RegisterForm() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={`mt-1 block w-full rounded-md border bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 ${
+            className={`mt-1 block w-full rounded border bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none ${
               errors.password
-                ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
+                ? "border-red-500 focus:border-red-500"
+                : "border-line focus:border-accent"
             }`}
             placeholder="At least 8 characters"
             disabled={isSubmitting}
           />
           {errors.password && (
-            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.password}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-300">{errors.password}</p>
           )}
         </div>
 
         {errors.submit && (
-          <div className="rounded-md bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300">
+          <div className="rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-300">
             {errors.submit}
           </div>
         )}
@@ -187,17 +187,17 @@ function RegisterForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? "Creating account..." : "Create Account"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="mt-6 text-center text-sm text-secondary">
         Already have an account?{" "}
         <Link
           href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-          className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+          className="font-medium text-accent hover:text-accent-hover"
         >
           Sign in
         </Link>

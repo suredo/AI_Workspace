@@ -16,14 +16,14 @@ export function formatCap(cents: number): string {
   return `$${(cents / 100).toFixed(2)}/day`;
 }
 
-export function roleBadgeColor(role: string): string {
+export function roleDotColor(role: string): string {
   switch (role) {
     case "owner":
-      return "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200";
+      return "bg-accent";
     case "admin":
-      return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
+      return "bg-sky-400";
     default:
-      return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200";
+      return "bg-muted/50";
   }
 }
 
@@ -64,11 +64,11 @@ export default function MembersSidebar({
         onClick={onClose}
         aria-hidden
       />
-      <aside className="absolute top-0 right-0 flex h-full w-80 max-w-[85vw] flex-col bg-white shadow-xl dark:bg-gray-900">
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <aside className="absolute top-0 right-0 flex h-full w-80 max-w-[85vw] flex-col border-l border-line bg-sidebar">
+        <div className="flex items-center justify-between border-b border-divider px-4 py-3">
+          <h2 className="text-base font-semibold text-ink">
             Members{" "}
-            <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-normal text-muted">
               ({members.length})
             </span>
           </h2>
@@ -77,7 +77,7 @@ export default function MembersSidebar({
             type="button"
             onClick={onClose}
             aria-label="Close members sidebar"
-            className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="rounded-md p-1.5 text-muted hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
@@ -86,31 +86,33 @@ export default function MembersSidebar({
           {members.map((member) => (
             <li key={member.id} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-elevated text-sm font-medium text-secondary">
                   {member.display_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <p className="text-sm font-medium text-ink">
                     {member.display_name}
                     {member.user_id === ownerId && (
-                      <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">
+                      <span className="ml-1 text-xs text-muted">
                         (owner)
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-muted">
                     {member.email}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${roleBadgeColor(member.role)}`}
-                >
+                  className={`h-1.5 w-1.5 rounded-full ${roleDotColor(member.role)}`}
+                  aria-hidden
+                />
+                <span className="text-xs text-secondary">
                   {member.role}
                 </span>
                 {member.daily_cap_cents !== null && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="font-mono text-xs text-muted">
                     {formatCap(member.daily_cap_cents)}
                   </span>
                 )}
