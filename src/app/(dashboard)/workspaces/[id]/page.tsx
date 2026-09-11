@@ -70,7 +70,7 @@ export default function WorkspaceDetailPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400">Loading workspace...</div>
+        <div className="text-sm text-muted">Loading workspace...</div>
       </div>
     );
   }
@@ -79,8 +79,8 @@ export default function WorkspaceDetailPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-red-600 dark:text-red-400">{error || "Workspace not found"}</p>
-          <Link href="/dashboard" className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 text-sm">
+          <p className="text-sm text-red-500">{error || "Workspace not found"}</p>
+          <Link href="/dashboard" className="text-sm text-accent hover:text-accent-hover">
             Back to Dashboard
           </Link>
         </div>
@@ -91,16 +91,16 @@ export default function WorkspaceDetailPage() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* Slim header: title left, controls right */}
-      <div className="shrink-0 border-b border-gray-200 dark:border-gray-800 px-4 py-3 md:px-6">
+      <div className="shrink-0 border-b border-divider px-4 py-3 md:px-6">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-2">
           <div className="min-w-0 pl-10 md:pl-0">
-            <h1 className="truncate text-lg font-semibold text-gray-900 dark:text-gray-100">{workspace.name}</h1>
+            <h1 className="truncate text-base font-semibold text-ink">{workspace.name}</h1>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-4">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              className="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="flex items-center gap-1.5 text-sm text-secondary hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Users className="h-4 w-4" aria-hidden />
               Members ({workspace.members.length})
@@ -108,7 +108,7 @@ export default function WorkspaceDetailPage() {
             {canInvite && (
               <Link
                 href={`/workspaces/${workspaceId}/settings`}
-                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                className="text-sm text-secondary hover:text-ink"
               >
                 Settings
               </Link>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, X } from "lucide-react";
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, Sparkles, X } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import CreateWorkspaceModal from "@/components/workspace/CreateWorkspaceModal";
 import type { WorkspaceWithMembers } from "@/lib/types";
@@ -91,7 +91,7 @@ export default function AppSidebar() {
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-label="Open navigation"
-          className="fixed top-3 left-3 z-20 rounded-md p-2 text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:hidden dark:text-gray-300 dark:hover:bg-gray-800"
+          className="fixed top-3 left-3 z-20 rounded-md p-2 text-secondary hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent md:hidden"
         >
           <Menu className="h-5 w-5" aria-hidden />
         </button>
@@ -104,7 +104,7 @@ export default function AppSidebar() {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white transition-[width,transform] duration-200 ease-in-out dark:border-gray-800 dark:bg-gray-900 md:sticky md:top-0 md:h-dvh md:max-w-none md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] shrink-0 flex-col overflow-hidden border-r border-line bg-sidebar transition-[width,transform] duration-200 ease-in-out md:sticky md:top-0 md:h-dvh md:max-w-none md:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } ${desktopCollapsed ? "md:w-16" : "md:w-72"}`}
       >
@@ -116,16 +116,17 @@ export default function AppSidebar() {
           <Link
             href="/dashboard"
             onClick={closeMobile}
-            className={`text-lg font-semibold text-gray-900 dark:text-gray-100 ${
+            className={`flex items-center gap-2 text-sm font-semibold tracking-wide text-ink ${
               desktopCollapsed ? "md:hidden" : ""
             }`}
           >
+            <Sparkles className="h-4 w-4 text-accent" aria-hidden />
             AI Workspace
           </Link>
           {desktopCollapsed && (
             <span
               aria-hidden
-              className="hidden h-8 w-8 items-center justify-center rounded-md bg-gray-900 text-sm font-semibold text-white md:flex dark:bg-gray-100 dark:text-gray-900"
+              className="hidden h-8 w-8 items-center justify-center rounded-md bg-accent-wash text-sm font-semibold text-accent md:flex"
             >
               AI
             </span>
@@ -135,7 +136,7 @@ export default function AppSidebar() {
             ref={drawerCloseRef}
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
-            className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:hidden dark:text-gray-400 dark:hover:bg-gray-800"
+            className="rounded-md p-1.5 text-muted hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent md:hidden"
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
@@ -145,7 +146,7 @@ export default function AppSidebar() {
             aria-expanded={!desktopCollapsed}
             aria-label={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="hidden rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:flex dark:text-gray-400 dark:hover:bg-gray-800"
+            className="hidden rounded-md p-1.5 text-muted hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent md:flex"
           >
             {desktopCollapsed ? (
               <PanelLeftOpen className="h-5 w-5" aria-hidden />
@@ -160,7 +161,7 @@ export default function AppSidebar() {
           }`}
         >
           <span
-            className={`text-xs font-semibold tracking-wider text-gray-500 uppercase dark:text-gray-400 ${
+            className={`text-xs font-semibold tracking-wider text-muted uppercase ${
               desktopCollapsed ? "md:hidden" : ""
             }`}
           >
@@ -171,7 +172,7 @@ export default function AppSidebar() {
             onClick={() => setShowCreateModal(true)}
             aria-label="New workspace"
             title="New workspace"
-            className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="rounded-md p-1.5 text-muted hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <Plus className="h-4 w-4" aria-hidden />
           </button>
@@ -179,7 +180,7 @@ export default function AppSidebar() {
         <nav aria-label="Workspaces" className="flex-1 space-y-1 overflow-x-hidden overflow-y-auto overscroll-contain px-2">
           {workspaces.length === 0 && (
             <p
-              className={`px-3 py-2 text-sm text-gray-500 dark:text-gray-400 ${
+              className={`px-3 py-2 text-sm text-muted ${
                 desktopCollapsed ? "md:hidden" : ""
               }`}
             >
@@ -189,8 +190,8 @@ export default function AppSidebar() {
           {workspaces.map((workspace) => {
             const active = workspace.id === activeId;
             const itemClass = active
-              ? "bg-gray-100 font-medium text-gray-900 dark:bg-gray-800 dark:text-gray-100"
-              : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800";
+              ? "bg-elevated font-medium text-ink"
+              : "text-secondary hover:bg-hover hover:text-ink";
             if (desktopCollapsed) {
               return (
                 <span key={workspace.id} className="block">
@@ -198,7 +199,7 @@ export default function AppSidebar() {
                     href={`/workspaces/${workspace.id}`}
                     onClick={closeMobile}
                     aria-current={active ? "page" : undefined}
-                    className={`block truncate rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:hidden ${itemClass}`}
+                    className={`block truncate rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-accent md:hidden ${itemClass}`}
                   >
                     {workspace.name}
                   </Link>
@@ -208,7 +209,7 @@ export default function AppSidebar() {
                     aria-current={active ? "page" : undefined}
                     title={workspace.name}
                     aria-label={workspace.name}
-                    className={`hidden justify-center rounded-md px-2 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:flex ${itemClass}`}
+                    className={`hidden justify-center rounded px-2 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent md:flex ${itemClass}`}
                   >
                     <span aria-hidden>
                       {workspace.name.charAt(0).toUpperCase()}
@@ -223,19 +224,27 @@ export default function AppSidebar() {
                 href={`/workspaces/${workspace.id}`}
                 onClick={closeMobile}
                 aria-current={active ? "page" : undefined}
-                className={`block truncate rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                  active
-                    ? "bg-gray-100 font-medium text-gray-900 dark:bg-gray-800 dark:text-gray-100"
-                    : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
-                }`}
+                className={`relative flex items-center gap-2 rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${itemClass}`}
               >
-                {workspace.name}
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-full bg-accent"
+                  />
+                )}
+                <span
+                  aria-hidden
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    active ? "bg-accent" : "bg-muted/40"
+                  }`}
+                />
+                <span className="min-w-0 truncate">{workspace.name}</span>
               </Link>
             );
           })}
         </nav>
         <div
-          className={`flex items-center justify-between gap-2 border-t border-gray-200 px-4 py-3 dark:border-gray-800 ${
+          className={`flex items-center justify-between gap-2 border-t border-divider px-4 py-3 ${
             desktopCollapsed ? "md:flex-col md:justify-center md:px-2" : ""
           }`}
         >
@@ -247,7 +256,7 @@ export default function AppSidebar() {
             onClick={() => signOutAction()}
             aria-label="Log out"
             title="Log out"
-            className="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-secondary hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <LogOut className="h-4 w-4" aria-hidden />
             <span className={desktopCollapsed ? "md:hidden" : ""}>Log out</span>
