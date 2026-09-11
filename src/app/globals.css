@@ -59,16 +59,16 @@
 }
 
 .dark {
-  --background: #05070d;
+  --background: #020409;
   --foreground: #f5f7fa;
 
-  --app: #05070d;
-  --sidebar: #080b11;
-  --elevated: #0d1118;
-  --hover: #141922;
+  --app: #020409;
+  --sidebar: #05070d;
+  --elevated: #0a0e16;
+  --hover: #10141d;
 
-  --line: #171d29;
-  --divider: #111722;
+  --line: #141a26;
+  --divider: #0d1219;
 
   --ink: #f5f7fa;
   --secondary: #a1a8b3;
@@ -140,7 +140,7 @@ body {
   --tw-prose-quote-borders: var(--line);
   --tw-prose-captions: var(--muted);
   --tw-prose-code: var(--ink);
-  --tw-prose-pre-code: #e6e9ef;
+  --tw-prose-pre-code: #f0f3f8;
   --tw-prose-pre-bg: transparent;
   --tw-prose-th-borders: var(--line);
   --tw-prose-td-borders: var(--line);
@@ -156,7 +156,7 @@ body {
   --tw-prose-invert-quote-borders: var(--line);
   --tw-prose-invert-captions: var(--muted);
   --tw-prose-invert-code: var(--ink);
-  --tw-prose-invert-pre-code: #e6e9ef;
+  --tw-prose-invert-pre-code: #f0f3f8;
   --tw-prose-invert-pre-bg: transparent;
   --tw-prose-invert-th-borders: var(--line);
   --tw-prose-invert-td-borders: var(--line);
@@ -253,7 +253,7 @@ body {
 
 /* Restrained violet-tinted highlight theme (both app themes). */
 .hljs {
-  color: #e6e9ef;
+  color: #f0f3f8;
   background: transparent;
 }
 .hljs-comment,
@@ -279,7 +279,7 @@ body {
 .hljs-title,
 .hljs-title.function_,
 .hljs-section {
-  color: #a78bfa;
+  color: #e9d5ff;
 }
 .hljs-title.class_,
 .hljs-type,
@@ -294,14 +294,17 @@ body {
 .hljs-name,
 .hljs-selector-id,
 .hljs-selector-class {
-  color: #e6e9ef;
+  color: #f0f3f8;
+}
+.hljs-params {
+  color: #f0f3f8;
 }
 .hljs-symbol,
 .hljs-bullet,
 .hljs-link,
 .hljs-operator,
 .hljs-punctuation {
-  color: #a1a8b3;
+  color: #b6bcc7;
 }
 .hljs-emphasis {
   font-style: italic;
