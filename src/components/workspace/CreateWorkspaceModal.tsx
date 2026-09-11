@@ -62,16 +62,16 @@ export default function CreateWorkspaceModal({
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
+      <div className="relative w-full max-w-md rounded-lg border border-line bg-elevated p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-base font-semibold text-ink">
             Create Workspace
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="rounded-md p-1.5 text-muted hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
@@ -80,7 +80,7 @@ export default function CreateWorkspaceModal({
           <div>
             <label
               htmlFor="workspace-name"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              className="block text-sm font-medium text-secondary"
             >
               Workspace Name
             </label>
@@ -92,12 +92,12 @@ export default function CreateWorkspaceModal({
               onChange={(e) => setName(e.target.value)}
               required
               maxLength={100}
-              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500"
+              className="mt-1 block w-full rounded border border-line bg-app px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
               placeholder="e.g. Study Group Alpha"
             />
           </div>
           {createError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+            <div className="rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-300">
               {createError}
             </div>
           )}
@@ -105,14 +105,14 @@ export default function CreateWorkspaceModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="rounded px-4 py-2 text-sm font-medium text-secondary hover:bg-hover hover:text-ink"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={creating || !name.trim()}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {creating ? "Creating..." : "Create"}
             </button>

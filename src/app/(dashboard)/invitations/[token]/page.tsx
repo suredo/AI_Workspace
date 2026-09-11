@@ -84,7 +84,7 @@ export default function InvitationAcceptPage() {
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400">Loading invitation...</div>
+        <div className="text-sm text-muted">Loading invitation...</div>
       </div>
     );
   }
@@ -92,17 +92,17 @@ export default function InvitationAcceptPage() {
   if (accepted) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm text-center space-y-4">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-            <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <div className="rounded-lg border border-line bg-elevated p-8 text-center space-y-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+            <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome!</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <h1 className="text-2xl font-bold text-ink">Welcome!</h1>
+          <p className="text-secondary">
             You&apos;ve joined <strong>{invitation?.workspace_name}</strong>.
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Redirecting to workspace...</p>
+          <p className="text-sm text-muted">Redirecting to workspace...</p>
         </div>
       </div>
     );
@@ -111,15 +111,15 @@ export default function InvitationAcceptPage() {
   if (error) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm text-center space-y-4">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
-            <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <div className="rounded-lg border border-line bg-elevated p-8 text-center space-y-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
+            <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Invalid Invitation</h1>
-          <p className="text-gray-600 dark:text-gray-400">{error}</p>
-          <Link href="/dashboard" className="inline-block text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 text-sm">
+          <h1 className="text-2xl font-bold text-ink">Invalid Invitation</h1>
+          <p className="text-secondary">{error}</p>
+          <Link href="/dashboard" className="inline-block text-accent hover:text-accent-hover text-sm">
             Go to Dashboard
           </Link>
         </div>
@@ -130,29 +130,29 @@ export default function InvitationAcceptPage() {
   if (!authenticated && invitation) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm text-center space-y-4">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-            <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <div className="rounded-lg border border-line bg-elevated p-8 text-center space-y-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent-wash">
+            <svg className="h-6 w-6 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Join Workspace</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <h1 className="text-2xl font-bold text-ink">Join Workspace</h1>
+          <p className="text-secondary">
             You&apos;ve been invited to join <strong>{invitation.workspace_name}</strong>
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-muted">
             Invited by {invitation.created_by_name}
           </p>
           <div className="pt-4">
             <Link
               href={`/login?callbackUrl=${encodeURIComponent(`/invitations/${token}`)}`}
-              className="inline-block w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 text-center"
+              className="inline-block w-full rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover text-center"
             >
               Sign in to join
             </Link>
           </div>
           <p className="pt-2">
-            <Link href={`/register?callbackUrl=${encodeURIComponent(`/invitations/${token}`)}`} className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300">
+            <Link href={`/register?callbackUrl=${encodeURIComponent(`/invitations/${token}`)}`} className="text-sm text-accent hover:text-accent-hover">
               Create an account
             </Link>
           </p>
@@ -162,31 +162,31 @@ export default function InvitationAcceptPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center">
-      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm text-center space-y-4">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-          <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <div className="flex flex-1 items-center justify-center">
+        <div className="rounded-lg border border-line bg-elevated p-8 text-center space-y-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent-wash">
+            <svg className="h-6 w-6 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Join Workspace</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <h1 className="text-2xl font-bold text-ink">Join Workspace</h1>
+        <p className="text-secondary">
           You&apos;ve been invited to join <strong>{invitation?.workspace_name}</strong>
         </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-muted">
           Invited by {invitation?.created_by_name}
         </p>
         <div className="pt-4">
           <button
             onClick={handleAccept}
             disabled={accepting}
-            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+            className="w-full rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
             {accepting ? "Joining..." : "Join Workspace"}
           </button>
         </div>
         <p className="pt-2">
-          <Link href="/dashboard" className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+          <Link href="/dashboard" className="text-sm text-muted hover:text-secondary">
             Maybe later
           </Link>
         </p>
