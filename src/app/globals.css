@@ -125,3 +125,193 @@ body {
 .dark .chat-scroll::-webkit-scrollbar-thumb:hover {
   background-color: #4a4365;
 }
+
+/* AI document typography: map the typography plugin onto app tokens. */
+.prose {
+  --tw-prose-body: var(--secondary);
+  --tw-prose-headings: var(--ink);
+  --tw-prose-lead: var(--secondary);
+  --tw-prose-links: var(--accent);
+  --tw-prose-bold: var(--ink);
+  --tw-prose-counters: var(--muted);
+  --tw-prose-bullets: var(--muted);
+  --tw-prose-hr: var(--divider);
+  --tw-prose-quotes: var(--secondary);
+  --tw-prose-quote-borders: var(--line);
+  --tw-prose-captions: var(--muted);
+  --tw-prose-code: var(--ink);
+  --tw-prose-pre-code: #e6e9ef;
+  --tw-prose-pre-bg: transparent;
+  --tw-prose-th-borders: var(--line);
+  --tw-prose-td-borders: var(--line);
+  --tw-prose-invert-body: var(--secondary);
+  --tw-prose-invert-headings: var(--ink);
+  --tw-prose-invert-lead: var(--secondary);
+  --tw-prose-invert-links: var(--accent);
+  --tw-prose-invert-bold: var(--ink);
+  --tw-prose-invert-counters: var(--muted);
+  --tw-prose-invert-bullets: var(--muted);
+  --tw-prose-invert-hr: var(--divider);
+  --tw-prose-invert-quotes: var(--secondary);
+  --tw-prose-invert-quote-borders: var(--line);
+  --tw-prose-invert-captions: var(--muted);
+  --tw-prose-invert-code: var(--ink);
+  --tw-prose-invert-pre-code: #e6e9ef;
+  --tw-prose-invert-pre-bg: transparent;
+  --tw-prose-invert-th-borders: var(--line);
+  --tw-prose-invert-td-borders: var(--line);
+}
+
+/* Inline code reads as a technical chip; block code is styled below. */
+.prose :where(code):not(:where(pre code, [class~="not-prose"] *)) {
+  background: var(--elevated);
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem;
+  font-weight: 500;
+}
+.prose :where(code):not(:where(pre code, [class~="not-prose"] *))::before,
+.prose :where(code):not(:where(pre code, [class~="not-prose"] *))::after {
+  content: none;
+}
+
+/* IDE-style code block embedded in the conversation. */
+.code-block {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  background: var(--sidebar);
+}
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--divider);
+  padding: 0.375rem 0.75rem;
+}
+.code-block-language {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.code-block-copy {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.5rem;
+}
+.code-block-copy:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+.code-block-copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.prose .code-block pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.75rem 0;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.code-block pre code {
+  display: block;
+  padding: 0;
+  background: transparent;
+}
+.code-block pre code::before,
+.code-block pre code::after {
+  content: none;
+}
+/* Line numbers via counters: never copied, never read by AT. */
+.code-block pre code {
+  counter-reset: code-line;
+}
+.code-line {
+  display: block;
+  padding-right: 1rem;
+  white-space: pre;
+}
+.code-line::before {
+  counter-increment: code-line;
+  content: counter(code-line);
+  display: inline-block;
+  width: 2.5ch;
+  margin-right: 1.25ch;
+  margin-left: 0.75rem;
+  text-align: right;
+  color: var(--muted);
+  opacity: 0.6;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Restrained violet-tinted highlight theme (both app themes). */
+.hljs {
+  color: #e6e9ef;
+  background: transparent;
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--muted);
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag,
+.hljs-template-tag {
+  color: #c4b5fd;
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-meta .hljs-string {
+  color: #9ecea5;
+}
+.hljs-number,
+.hljs-literal {
+  color: #f0b46c;
+}
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: #a78bfa;
+}
+.hljs-title.class_,
+.hljs-type,
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #7dd3fc;
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #e6e9ef;
+}
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-operator,
+.hljs-punctuation {
+  color: #a1a8b3;
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 700;
+}
+.hljs-addition {
+  color: #9ecea5;
+}
+.hljs-deletion {
+  color: #f19494;
+}

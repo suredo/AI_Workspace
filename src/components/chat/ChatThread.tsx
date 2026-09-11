@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { LoaderCircle } from "lucide-react";
 import type { MessageWithSender } from "@/lib/types";
 import MessageBubble from "./MessageBubble";
 
@@ -37,9 +38,9 @@ export default function ChatThread({
 
   if (messages.length === 0 && !streaming) {
     return (
-      <div className="flex min-h-64 flex-1 items-center justify-center text-gray-400 dark:text-gray-500">
+      <div className="flex min-h-64 flex-1 items-center justify-center text-muted">
         <div className="text-center">
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No messages yet</p>
+          <p className="text-sm font-medium text-secondary">No messages yet</p>
           <p className="mt-1 text-sm">Start the conversation below.</p>
         </div>
       </div>
@@ -52,7 +53,7 @@ export default function ChatThread({
       onScroll={handleScroll}
       className="chat-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6"
     >
-      <div className="mx-auto w-full max-w-4xl space-y-4 pb-48">
+      <div className="mx-auto w-full max-w-4xl space-y-6 pb-48">
       {messages.map((message) => (
         <MessageBubble
           key={message.id}
@@ -62,12 +63,12 @@ export default function ChatThread({
         />
       ))}
       {streaming && streamingMessageId === null && (
-        <div className="flex justify-start">
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-500 dark:text-gray-400 shadow-sm">
-            <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" />{" "}
-            <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />{" "}
-            <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
-          </div>
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <LoaderCircle
+            className="h-4 w-4 animate-spin text-accent"
+            aria-hidden
+          />
+          <span>AI is thinking...</span>
         </div>
       )}
       </div>
