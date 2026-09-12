@@ -10,11 +10,13 @@ export default function ChatThread({
   streaming,
   streamingMessageId,
   currentUserId,
+  onReply,
 }: {
   messages: MessageWithSender[];
   streaming: boolean;
   streamingMessageId: string | null;
   currentUserId: string | null;
+  onReply: (message: MessageWithSender) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Sticky-scroll: only yank to the bottom when the user is already near
@@ -60,6 +62,7 @@ export default function ChatThread({
           message={message}
           streaming={streaming && message.id === streamingMessageId}
           isOwn={message.sender_id !== null && message.sender_id === currentUserId}
+          onReply={onReply}
         />
       ))}
       {streaming && streamingMessageId === null && (

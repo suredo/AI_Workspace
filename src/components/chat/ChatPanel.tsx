@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { X } from "lucide-react";
 import type { MessageWithSender } from "@/lib/types";
 import ChatThread from "./ChatThread";
 import MessageInput from "./MessageInput";
@@ -29,6 +30,10 @@ export default function ChatPanel({
     null
   );
   const [sendError, setSendError] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{
+    display_name: string;
+    excerpt: string;
+  } | null>(null);
   const streamingRef = useRef(false);
 
   const fetchMessages = useCallback(async () => {
@@ -93,6 +98,17 @@ export default function ChatPanel({
     setStreaming(true);
     streamingRef.current = true;
 
+    // Prepend the quoted reply (if any) as a blockquote so it shows in
+    // history and reaches the AI as part of the message.
+    const quote = replyTo
+      ? replyTo.excerpt
+          .split("\n")
+          .map((line) => `> ${line}`)
+          .join("\n") + "\n\n"
+      : "";
+    setReplyTo(null);
+    const composed = quote + content;
+
     const optimistic: MessageWithSender = {
       id: `temp-user-${Date.now()}`,
       workspace_id: workspaceId,
@@ -100,7 +116,7 @@ export default function ChatPanel({
       // messages until the server state reconciles after streaming.
       sender_id: currentUserId,
       role: "user",
-      content,
+      content: composed,
       model: null,
       cost_cents: null,
       reasoning: null,
@@ -114,7 +130,7 @@ export default function ChatPanel({
       res = await fetch(`/api/workspaces/${workspaceId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content: composed }),
       });
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
@@ -229,6 +245,22 @@ export default function ChatPanel({
 
   const capReached = usage !== null && usage.cap_reached;
 
+  function handleReply(message: MessageWithSender) {
+    const trimmed = message.content.trim();
+    const excerpt =
+      trimmed.length > 200 ? trimmed.slice(0, 200) + "…" : trimmed;
+    setReplyTo({ display_name: message.display_name, excerpt });
+  }
+
+  useEffect(() => {
+    if (!replyTo) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setReplyTo(null);
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [replyTo]);
+
   if (loading) {
     return (
       <div className="flex min-h-64 flex-1 items-center justify-center text-muted">
@@ -252,6 +284,7 @@ export default function ChatPanel({
         streaming={streaming}
         streamingMessageId={streamingMessageId}
         currentUserId={currentUserId}
+        onReply={handleReply}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-app via-app/80 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6">
         <div className="pointer-events-auto mx-auto w-full max-w-[min(92%,100rem)] py-3">
@@ -273,6 +306,24 @@ export default function ChatPanel({
           sending={streaming}
           capReached={capReached}
         />
+        {replyTo && (
+          <div className="mt-2 flex items-start gap-2 border-l-2 border-accent bg-elevated/60 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-accent">
+                Replying to {replyTo.display_name}
+              </p>
+              <p className="truncate text-xs text-muted">{replyTo.excerpt}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              aria-label="Dismiss reply"
+              className="rounded p-1 text-muted hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </div>
+        )}
         </div>
       </div>
     </div>
