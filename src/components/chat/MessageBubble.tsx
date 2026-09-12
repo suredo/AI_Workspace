@@ -50,6 +50,30 @@ export function splitReply(content: string): ParsedReply | null {
   return { author, excerpt, body };
 }
 
+function normalizeForMatch(text: string): string {
+  return text.trim().replace(/\s+/g, " ");
+}
+
+/**
+ * Recover the quoted author for unattributed (legacy/pasted) quotes by
+ * matching the excerpt against loaded thread messages. Works for teammates
+ * and AI alike, since matching is purely textual.
+ */
+export function findQuoteAuthor(
+  excerpt: string,
+  messages: MessageWithSender[],
+  selfId: string
+): string | null {
+  const needle = normalizeForMatch(excerpt);
+  if (!needle) return null;
+  const match = messages.find(
+    (message) =>
+      message.id !== selfId &&
+      normalizeForMatch(message.content).includes(needle)
+  );
+  return match ? match.display_name : null;
+}
+
 function MessageActions({
   align,
   copied,
@@ -98,11 +122,13 @@ export default function MessageBubble({
   streaming = false,
   isOwn = false,
   onReply,
+  quoteAuthor = null,
 }: {
   message: MessageWithSender;
   streaming?: boolean;
   isOwn?: boolean;
   onReply: (message: MessageWithSender) => void;
+  quoteAuthor?: string | null;
 }) {
   const isUser = message.role === "user";
   // Reasoning traces and answers often carry boundary newlines around the
@@ -118,6 +144,7 @@ export default function MessageBubble({
   // Replies (user messages only) get an attached quote box; AI responses
   // starting with `>` keep their plain prose rendering.
   const reply = isUser ? splitReply(content) : null;
+  const quotedName = reply?.author ?? quoteAuthor;
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -194,7 +221,7 @@ export default function MessageBubble({
         {reply && (
           <div className="mb-2 rounded border border-line border-l-2 border-l-accent bg-app/60 px-3 py-2">
             <p className="text-xs font-semibold text-accent">
-              {reply.author ? `Replying to ${reply.author}` : "Quoted message"}
+              {quotedName ? `Replying to ${quotedName}` : "Quoted message"}
             </p>
             <p className="mt-0.5 line-clamp-4 text-xs whitespace-pre-wrap text-muted">
               {reply.excerpt}

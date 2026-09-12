@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { LoaderCircle } from "lucide-react";
 import type { MessageWithSender } from "@/lib/types";
-import MessageBubble from "./MessageBubble";
+import MessageBubble, { findQuoteAuthor, splitReply } from "./MessageBubble";
 
 export default function ChatThread({
   messages,
@@ -63,6 +63,11 @@ export default function ChatThread({
           streaming={streaming && message.id === streamingMessageId}
           isOwn={message.sender_id !== null && message.sender_id === currentUserId}
           onReply={onReply}
+          quoteAuthor={findQuoteAuthor(
+            splitReply(message.content.trim())?.excerpt ?? "",
+            messages,
+            message.id
+          )}
         />
       ))}
       {streaming && streamingMessageId === null && (
