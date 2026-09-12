@@ -69,7 +69,11 @@ export default function MessageBubble({
 
   return (
     <div className={`flex ${alignRight ? "justify-end" : "justify-start"}`}>
-      <div className="max-w-[85%]">
+      <div
+        className={`max-w-[85%] rounded-md px-3 py-2 ${
+          alignRight ? "bg-elevated" : "bg-elevated/60"
+        }`}
+      >
         <div
           className={`mb-1 flex items-baseline gap-2 ${
             alignRight ? "justify-end" : "justify-start"
