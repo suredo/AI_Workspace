@@ -15,6 +15,41 @@ function formatTime(dateStr: string): string {
   });
 }
 
+interface ParsedReply {
+  author: string | null;
+  excerpt: string;
+  body: string;
+}
+
+/**
+ * Split a leading markdown quote run off a user message. Returns null when
+ * the message is not a reply (or is quote-only), so AI responses starting
+ * with `>` and pasted quote-only text keep their plain rendering.
+ */
+export function splitReply(content: string): ParsedReply | null {
+  const lines = content.split("\n");
+  if (lines.length === 0 || !lines[0].startsWith(">")) return null;
+  const quoteLines: string[] = [];
+  let i = 0;
+  while (i < lines.length && lines[i].startsWith(">")) {
+    quoteLines.push(lines[i].replace(/^>\s?/, ""));
+    i++;
+  }
+  while (i < lines.length && lines[i].trim() === "") i++;
+  const body = lines.slice(i).join("\n").trim();
+  if (quoteLines.length === 0 || !body) return null;
+  let author: string | null = null;
+  let excerptLines = quoteLines;
+  const attribution = /^\*\*Replying to (.+)\*\*$/.exec(quoteLines[0].trim());
+  if (attribution) {
+    author = attribution[1];
+    excerptLines = quoteLines.slice(1);
+  }
+  const excerpt = excerptLines.join("\n").trim();
+  if (!excerpt) return null;
+  return { author, excerpt, body };
+}
+
 function MessageActions({
   align,
   copied,
@@ -80,6 +115,9 @@ export default function MessageBubble({
   // render as open documents with a violet identity marker, never as
   // bubbles, so the conversation blends into the workspace background.
   const alignRight = isUser && isOwn;
+  // Replies (user messages only) get an attached quote box; AI responses
+  // starting with `>` keep their plain prose rendering.
+  const reply = isUser ? splitReply(content) : null;
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -153,8 +191,18 @@ export default function MessageBubble({
             {formatTime(message.created_at)}
           </span>
         </div>
+        {reply && (
+          <div className="mb-2 rounded border border-line border-l-2 border-l-accent bg-app/60 px-3 py-2">
+            <p className="text-xs font-semibold text-accent">
+              {reply.author ? `Replying to ${reply.author}` : "Quoted message"}
+            </p>
+            <p className="mt-0.5 line-clamp-4 text-xs whitespace-pre-wrap text-muted">
+              {reply.excerpt}
+            </p>
+          </div>
+        )}
         <p className="text-sm leading-relaxed whitespace-pre-wrap text-ink">
-          {content}
+          {reply ? reply.body : content}
           {streaming && (
             <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-current align-middle" />
           )}

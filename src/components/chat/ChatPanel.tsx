@@ -98,13 +98,18 @@ export default function ChatPanel({
     setStreaming(true);
     streamingRef.current = true;
 
-    // Prepend the quoted reply (if any) as a blockquote so it shows in
-    // history and reaches the AI as part of the message.
+    // Prepend the quoted reply (if any) as an attributed blockquote so it
+    // shows in history with a quote box and reaches the AI as context.
+    const safeName = replyTo
+      ? replyTo.display_name.replace(/[\r\n]+/g, " ")
+      : "";
     const quote = replyTo
-      ? replyTo.excerpt
-          .split("\n")
-          .map((line) => `> ${line}`)
-          .join("\n") + "\n\n"
+      ? [
+          `> **Replying to ${safeName}**`,
+          ...replyTo.excerpt
+            .split("\n")
+            .map((line) => `> ${line}`),
+        ].join("\n") + "\n\n"
       : "";
     setReplyTo(null);
     const composed = quote + content;
