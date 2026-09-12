@@ -3,12 +3,38 @@
 import { useState } from "react";
 import { ArrowUp, LoaderCircle } from "lucide-react";
 
+export type ComposerKind = "chat" | "ai" | "help" | "unknown";
+
+export interface ComposerPayload {
+  kind: ComposerKind;
+  /** Full text as typed (commands keep their prefix for a transparent record). */
+  text: string;
+  /** Command name without slash, when the input is a command. */
+  command?: string;
+}
+
+/** Split composer text into plain chat or a /command payload. */
+export function parseComposer(value: string): ComposerPayload {
+  const text = value.trim();
+  const match = /^\/(\w+)([\s\S]*)$/.exec(text);
+  if (!match) return { kind: "chat", text };
+  const command = match[1].toLowerCase();
+  const rest = match[2];
+  if (command === "ai") {
+    return rest.trim()
+      ? { kind: "ai", text, command }
+      : { kind: "unknown", text, command };
+  }
+  if (command === "help") return { kind: "help", text, command };
+  return { kind: "unknown", text, command };
+}
+
 export default function MessageInput({
   onSend,
   sending,
   capReached,
 }: {
-  onSend: (content: string) => void;
+  onSend: (payload: ComposerPayload) => void;
   sending: boolean;
   capReached: boolean;
 }) {
@@ -19,7 +45,7 @@ export default function MessageInput({
 
   function handleSend() {
     if (disabled) return;
-    onSend(trimmed);
+    onSend(parseComposer(value));
     setValue("");
   }
 
@@ -44,7 +70,7 @@ export default function MessageInput({
             placeholder={
               capReached
                 ? "You've reached your daily spending limit."
-                : "Ask your workspace..."
+                : "Message teammates, or /ai to ask the AI…"
             }
             aria-label="Message your workspace"
             className="block w-full resize-none border-0 bg-transparent px-1 py-2 pr-12 text-sm text-ink placeholder:text-muted focus:ring-0 focus:outline-none disabled:cursor-not-allowed disabled:text-disabled"

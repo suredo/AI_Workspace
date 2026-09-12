@@ -5,7 +5,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import type { MessageWithSender } from "@/lib/types";
 import ChatThread from "./ChatThread";
-import MessageInput from "./MessageInput";
+import MessageInput, { type ComposerPayload } from "./MessageInput";
 import { useRealtimeMessages } from "./useRealtimeMessages";
 
 const POLL_FALLBACK_INTERVAL_MS = 30000;
@@ -38,6 +38,7 @@ export default function ChatPanel({
     null
   );
   const [sendError, setSendError] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<{
     display_name: string;
     excerpt: string;
@@ -197,10 +198,20 @@ export default function ChatPanel({
     }
   }, [realtimeStatus, refresh]);
 
-  async function handleSend(content: string) {
+  async function handleSend(payload: ComposerPayload) {
     setSendError(null);
-    setStreaming(true);
-    streamingRef.current = true;
+    if (payload.kind === "help") {
+      setHelpOpen(true);
+      return;
+    }
+    if (payload.kind === "unknown") {
+      setSendError(
+        payload.command === "ai"
+          ? "Usage: /ai <your question>"
+          : `Unknown command "/${payload.command}". Try /ai or /help.`
+      );
+      return;
+    }
 
     // Prepend the quoted reply (if any) as an attributed blockquote so it
     // shows in history with a quote box and reaches the AI as context.
@@ -216,22 +227,39 @@ export default function ChatPanel({
         ].join("\n") + "\n\n"
       : "";
     setReplyTo(null);
-    const composed = quote + content;
+    const composed = quote + payload.text;
 
-    const optimistic: MessageWithSender = {
+    if (payload.kind === "chat") {
+      await sendChat(composed);
+      return;
+    }
+    await sendAi(composed);
+  }
+
+  function makeOptimistic(content: string): MessageWithSender {
+    return {
       id: `temp-user-${Date.now()}`,
       workspace_id: workspaceId,
       // Attribute to the current user so the bubble aligns with their own
       // messages until the server state reconciles after streaming.
       sender_id: currentUserId,
       role: "user",
-      content: composed,
+      content,
       model: null,
       cost_cents: null,
       reasoning: null,
       created_at: new Date().toISOString(),
       display_name: "You",
     };
+  }
+
+  function dropOptimistic(id: string) {
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+  }
+
+  /** Plain chat: save + broadcast, no LLM call. */
+  async function sendChat(composed: string) {
+    const optimistic = makeOptimistic(composed);
     setMessages((prev) => [...prev, optimistic]);
 
     let res: Response;
@@ -242,7 +270,46 @@ export default function ChatPanel({
         body: JSON.stringify({ content: composed }),
       });
     } catch {
-      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      dropOptimistic(optimistic.id);
+      setSendError("Network error. Please try again.");
+      return;
+    }
+
+    if (!res.ok) {
+      let message = "Failed to send message.";
+      try {
+        const data = await res.json();
+        if (data.error) message = data.error;
+      } catch {
+        // Keep the default message.
+      }
+      dropOptimistic(optimistic.id);
+      setSendError(message);
+      return;
+    }
+
+    await refresh().catch(() => {
+      // Reconciliation failures are non-fatal; the poll recovers.
+    });
+  }
+
+  /** /ai command: today's streaming flow with spend gating. */
+  async function sendAi(composed: string) {
+    setStreaming(true);
+    streamingRef.current = true;
+
+    const optimistic = makeOptimistic(composed);
+    setMessages((prev) => [...prev, optimistic]);
+
+    let res: Response;
+    try {
+      res = await fetch(`/api/workspaces/${workspaceId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: composed, invoke_ai: true }),
+      });
+    } catch {
+      dropOptimistic(optimistic.id);
       setSendError("Network error. Please try again.");
       setStreaming(false);
       streamingRef.current = false;
@@ -257,7 +324,7 @@ export default function ChatPanel({
       } catch {
         // Keep the default message.
       }
-      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      dropOptimistic(optimistic.id);
       setSendError(message);
       if (res.status === 429) {
         fetchUsage().then(setUsage).catch(() => {});
@@ -418,6 +485,29 @@ export default function ChatPanel({
           sending={streaming}
           capReached={capReached}
         />
+        {helpOpen && (
+          <div className="mt-2 rounded border border-line bg-elevated/60 px-3 py-2 text-xs text-muted">
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-mono">
+                <span className="font-semibold text-accent">/ai</span> ask the
+                AI anything · <span className="font-semibold text-accent">/help</span> show
+                this message
+              </p>
+              <button
+                type="button"
+                onClick={() => setHelpOpen(false)}
+                aria-label="Dismiss help"
+                className="rounded p-0.5 text-muted hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </div>
+            <p className="mt-1">
+              Plain messages go to your teammates only — the AI stays quiet
+              unless you call it.
+            </p>
+          </div>
+        )}
         {replyTo && (
           <div className="mt-2 flex items-start gap-2 border-l-2 border-accent bg-elevated/60 px-3 py-2">
             <div className="min-w-0 flex-1">
