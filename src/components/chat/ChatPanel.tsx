@@ -6,8 +6,9 @@ import { X } from "lucide-react";
 import type { MessageWithSender } from "@/lib/types";
 import ChatThread from "./ChatThread";
 import MessageInput from "./MessageInput";
+import { useRealtimeMessages } from "./useRealtimeMessages";
 
-const POLL_INTERVAL_MS = 10000;
+const POLL_FALLBACK_INTERVAL_MS = 30000;
 const STREAMING_PLACEHOLDER_ID = "streaming-ai-response";
 const PAGE_LIMIT = 50;
 
@@ -22,9 +23,11 @@ function isLocalMessage(m: MessageWithSender): boolean {
 export default function ChatPanel({
   workspaceId,
   currentUserId,
+  members,
 }: {
   workspaceId: string;
   currentUserId: string | null;
+  members: { user_id: string; display_name: string }[];
 }) {
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [usage, setUsage] = useState<Usage | null>(null);
@@ -83,6 +86,30 @@ export default function ChatPanel({
     setUsage(fetchedUsage);
   }, [fetchMessages, fetchUsage]);
 
+  // Realtime arrivals slot before the streaming placeholder (if any) and
+  // dedupe against refresh windows.
+  const handleRealtimeInsert = useCallback((message: MessageWithSender) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === message.id)) return prev;
+      const placeholderIndex = prev.findIndex(
+        (m) => m.id === STREAMING_PLACEHOLDER_ID
+      );
+      if (placeholderIndex === -1) return [...prev, message];
+      return [
+        ...prev.slice(0, placeholderIndex),
+        message,
+        ...prev.slice(placeholderIndex),
+      ];
+    });
+  }, []);
+
+  const realtimeStatus = useRealtimeMessages(
+    workspaceId,
+    members,
+    handleRealtimeInsert
+  );
+  const realtimeConnectedRef = useRef(false);
+
   async function loadOlder() {
     if (loadingOlder) return;
     const offset = messages.filter((m) => !isLocalMessage(m)).length;
@@ -124,18 +151,40 @@ export default function ChatPanel({
     }
     load();
 
+    // Fallback poll: realtime owns liveness while subscribed; this only
+    // recovers missed rows. Skipped while streaming, hidden, or live.
     const interval = setInterval(() => {
       if (streamingRef.current) return;
+      if (document.hidden) return;
+      if (realtimeConnectedRef.current) return;
       refresh().catch(() => {
         // Poll failures are non-fatal; the next tick retries.
       });
-    }, POLL_INTERVAL_MS);
+    }, POLL_FALLBACK_INTERVAL_MS);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
   }, [fetchMessages, fetchUsage, refresh]);
+
+  // Track realtime connectivity for the fallback poll above, and close any
+  // coverage gap with a refresh whenever the channel (re)connects — except
+  // the very first subscribe, which duplicates the initial load.
+  const wasRealtimeConnected = useRef(false);
+  useEffect(() => {
+    realtimeConnectedRef.current = realtimeStatus === "subscribed";
+    if (realtimeStatus === "subscribed") {
+      if (wasRealtimeConnected.current) {
+        refresh().catch(() => {
+          // Recovery refresh failures are non-fatal; fallback poll retries.
+        });
+      }
+      wasRealtimeConnected.current = true;
+    } else if (realtimeStatus === "closed" || realtimeStatus === "error") {
+      wasRealtimeConnected.current = false;
+    }
+  }, [realtimeStatus, refresh]);
 
   async function handleSend(content: string) {
     setSendError(null);
