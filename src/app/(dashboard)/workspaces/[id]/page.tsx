@@ -116,7 +116,11 @@ export default function WorkspaceDetailPage() {
           </div>
         </div>
       </div>
-      <ChatPanel workspaceId={workspaceId} currentUserId={currentUserId} />
+      <ChatPanel
+        workspaceId={workspaceId}
+        currentUserId={currentUserId}
+        members={workspace.members}
+      />
       <MembersSidebar
         members={workspace.members}
         ownerId={workspace.owner_id}
