@@ -134,17 +134,8 @@ describe("GET /api/workspaces/[id]/messages", () => {
   });
 
   it("returns paginated messages with sender names", async () => {
+    // Fixture is newest-first, as the database window returns.
     const messages = [
-      {
-        id: "msg-1",
-        workspace_id: "ws-123",
-        sender_id: "user-123",
-        role: "user",
-        content: "Hello",
-        model: null,
-        cost_cents: null,
-        created_at: "2026-01-01T00:00:00Z",
-      },
       {
         id: "msg-2",
         workspace_id: "ws-123",
@@ -155,6 +146,16 @@ describe("GET /api/workspaces/[id]/messages", () => {
         cost_cents: 42,
         created_at: "2026-01-01T00:01:00Z",
       },
+      {
+        id: "msg-1",
+        workspace_id: "ws-123",
+        sender_id: "user-123",
+        role: "user",
+        content: "Hello",
+        model: null,
+        cost_cents: null,
+        created_at: "2026-01-01T00:00:00Z",
+      },
     ];
 
     mockFrom = vi.fn()
@@ -163,7 +164,9 @@ describe("GET /api/workspaces/[id]/messages", () => {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             order: vi.fn().mockReturnValue({
-              range: vi.fn().mockResolvedValue({ data: messages, error: null }),
+              order: vi.fn().mockReturnValue({
+                range: vi.fn().mockResolvedValue({ data: messages, error: null }),
+              }),
             }),
           }),
         }),
@@ -192,6 +195,77 @@ describe("GET /api/workspaces/[id]/messages", () => {
     // Per-message costs are never exposed in the chat feed (issue #59).
     expect(body.messages[0].cost_cents).toBeNull();
     expect(body.messages[1].cost_cents).toBeNull();
+  });
+
+  it("returns the newest window in chronological order (issue #92)", async () => {
+    // DB window is newest-first (limit=2 over 3 messages); the feed must
+    // re-order chronologically so refreshes never drop recent messages.
+    const newestFirst = [
+      {
+        id: "msg-3",
+        workspace_id: "ws-123",
+        sender_id: null,
+        role: "assistant",
+        content: "Answer two",
+        model: "llama-3.3-70b-versatile",
+        cost_cents: 0,
+        created_at: "2026-01-01T00:02:00Z",
+      },
+      {
+        id: "msg-2",
+        workspace_id: "ws-123",
+        sender_id: "user-123",
+        role: "user",
+        content: "Question two",
+        model: null,
+        cost_cents: null,
+        created_at: "2026-01-01T00:01:00Z",
+      },
+    ];
+    const orderCalls: Array<[string, unknown]> = [];
+    const rangeFn = vi.fn().mockResolvedValue({ data: newestFirst, error: null });
+    const secondOrder = vi.fn().mockImplementation((...args: [string, unknown]) => {
+      orderCalls.push(args);
+      return { range: rangeFn };
+    });
+    const firstOrder = vi.fn().mockImplementation((...args: [string, unknown]) => {
+      orderCalls.push(args);
+      return { order: secondOrder };
+    });
+
+    mockFrom = vi.fn()
+      .mockReturnValueOnce(mockSingle({ id: "mem-1" }, null))
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ order: firstOrder }),
+        }),
+      })
+      .mockReturnValueOnce(mockUsers([
+        { id: "user-123", display_name: "Test User" },
+      ]));
+    mockSupabase.from = mockFrom;
+
+    const { GET } = await import("@/app/api/workspaces/[id]/messages/route");
+    const response = await GET(
+      new Request("http://localhost:3000/api/workspaces/ws-123/messages?limit=2&offset=0"),
+      { params: Promise.resolve({ id: "ws-123" }) }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    // Newest-first window requested from the database...
+    expect(orderCalls).toEqual([
+      ["created_at", { ascending: false }],
+      ["id", { ascending: false }],
+    ]);
+    expect(rangeFn).toHaveBeenCalledWith(0, 1);
+    // ...but the feed returns chronological order including the latest.
+    expect(body.messages.map((m: { id: string }) => m.id)).toEqual([
+      "msg-2",
+      "msg-3",
+    ]);
+    expect(body.messages[0].display_name).toBe("Test User");
+    expect(body.messages[1].display_name).toBe("AI Assistant");
   });
 
   it("returns 401 when not authenticated", async () => {
