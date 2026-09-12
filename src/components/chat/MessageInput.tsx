@@ -104,7 +104,10 @@ export default function MessageInput({
   function handleSend() {
     if (disabled) return;
     setMenuOpen(false);
+    // Keep ref and state in sync: a stale menuQuery would filter the next
+    // "/" invocation down to the previously selected command.
     menuQueryRef.current = "";
+    setMenuQuery("");
     onSend(parseComposer(value));
     setValue("");
   }
