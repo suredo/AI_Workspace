@@ -59,7 +59,16 @@ export function useRealtimeMessages(
 
   useEffect(() => {
     let cancelled = false;
-    const supabase = createClient();
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      // Missing env (e.g. stale dev server predating .env.local) must
+      // degrade to the poll fallback, never crash the chat page.
+      supabase = createClient();
+    } catch {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStatus("error");
+      return;
+    }
     const channel = supabase
       .channel(`workspace:${workspaceId}:messages`)
       .on(
