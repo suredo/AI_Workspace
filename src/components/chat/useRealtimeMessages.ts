@@ -89,12 +89,16 @@ export function useRealtimeMessages(
           });
         }
       )
-      .subscribe((s) => {
+      .subscribe((s, err) => {
         if (cancelled) return;
         if (s === "SUBSCRIBED") setStatus("subscribed");
-        else if (s === "CLOSED") setStatus("closed");
-        else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") setStatus("error");
-        else setStatus("connecting");
+        else if (s === "CLOSED") {
+          setStatus("closed");
+          console.warn("[realtime] channel closed", err ?? "");
+        } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
+          setStatus("error");
+          console.warn("[realtime] subscribe failed", s, err ?? "");
+        } else setStatus("connecting");
       });
 
     return () => {
