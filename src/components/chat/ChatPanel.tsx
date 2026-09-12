@@ -87,21 +87,32 @@ export default function ChatPanel({
   }, [fetchMessages, fetchUsage]);
 
   // Realtime arrivals slot before the streaming placeholder (if any) and
-  // dedupe against refresh windows.
-  const handleRealtimeInsert = useCallback((message: MessageWithSender) => {
-    setMessages((prev) => {
-      if (prev.some((m) => m.id === message.id)) return prev;
-      const placeholderIndex = prev.findIndex(
-        (m) => m.id === STREAMING_PLACEHOLDER_ID
-      );
-      if (placeholderIndex === -1) return [...prev, message];
-      return [
-        ...prev.slice(0, placeholderIndex),
-        message,
-        ...prev.slice(placeholderIndex),
-      ];
-    });
-  }, []);
+  // dedupe against refresh windows. Own rows are skipped: the optimistic
+  // message already represents them (same-user other tabs fall back to
+  // the poll loop).
+  const handleRealtimeInsert = useCallback(
+    (message: MessageWithSender) => {
+      if (
+        message.sender_id !== null &&
+        message.sender_id === currentUserId
+      ) {
+        return;
+      }
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === message.id)) return prev;
+        const placeholderIndex = prev.findIndex(
+          (m) => m.id === STREAMING_PLACEHOLDER_ID
+        );
+        if (placeholderIndex === -1) return [...prev, message];
+        return [
+          ...prev.slice(0, placeholderIndex),
+          message,
+          ...prev.slice(placeholderIndex),
+        ];
+      });
+    },
+    [currentUserId]
+  );
 
   const realtimeStatus = useRealtimeMessages(
     workspaceId,
