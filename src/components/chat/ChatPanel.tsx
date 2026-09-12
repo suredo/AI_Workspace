@@ -9,9 +9,14 @@ import MessageInput from "./MessageInput";
 
 const POLL_INTERVAL_MS = 10000;
 const STREAMING_PLACEHOLDER_ID = "streaming-ai-response";
+const PAGE_LIMIT = 50;
 
 interface Usage {
   cap_reached: boolean;
+}
+
+function isLocalMessage(m: MessageWithSender): boolean {
+  return m.id === STREAMING_PLACEHOLDER_ID || m.id.startsWith("temp-user-");
 }
 
 export default function ChatPanel({
@@ -34,14 +39,21 @@ export default function ChatPanel({
     display_name: string;
     excerpt: string;
   } | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const streamingRef = useRef(false);
 
-  const fetchMessages = useCallback(async () => {
-    const res = await fetch(`/api/workspaces/${workspaceId}/messages?limit=50`);
-    if (!res.ok) throw new Error("Failed to load messages");
-    const data = await res.json();
-    return (data.messages || []) as MessageWithSender[];
-  }, [workspaceId]);
+  const fetchMessages = useCallback(
+    async (offset = 0) => {
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/messages?limit=${PAGE_LIMIT}&offset=${offset}`
+      );
+      if (!res.ok) throw new Error("Failed to load messages");
+      const data = await res.json();
+      return (data.messages || []) as MessageWithSender[];
+    },
+    [workspaceId]
+  );
 
   const fetchUsage = useCallback(async () => {
     const res = await fetch(`/api/workspaces/${workspaceId}/usage`);
@@ -52,12 +64,43 @@ export default function ChatPanel({
 
   const refresh = useCallback(async () => {
     const [fetchedMessages, fetchedUsage] = await Promise.all([
-      fetchMessages(),
+      fetchMessages(0),
       fetchUsage(),
     ]);
-    setMessages(fetchedMessages);
+    // Merge instead of replacing: keep already-loaded older pages, drop
+    // local placeholders (their server rows are in the fresh window).
+    setMessages((prev) => {
+      const freshIds = new Set(fetchedMessages.map((m) => m.id));
+      const oldestFresh = fetchedMessages[0]?.created_at;
+      const older = prev.filter(
+        (m) =>
+          !isLocalMessage(m) &&
+          !freshIds.has(m.id) &&
+          (!oldestFresh || m.created_at <= oldestFresh)
+      );
+      return [...older, ...fetchedMessages];
+    });
     setUsage(fetchedUsage);
   }, [fetchMessages, fetchUsage]);
+
+  async function loadOlder() {
+    if (loadingOlder) return;
+    const offset = messages.filter((m) => !isLocalMessage(m)).length;
+    setLoadingOlder(true);
+    try {
+      const older = await fetchMessages(offset);
+      setHasMore(older.length === PAGE_LIMIT);
+      if (older.length > 0) {
+        setMessages((prev) => {
+          const ids = new Set(prev.map((m) => m.id));
+          const fresh = older.filter((m) => !ids.has(m.id));
+          return [...fresh, ...prev];
+        });
+      }
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -65,12 +108,13 @@ export default function ChatPanel({
       try {
         setLoading(true);
         const [fetchedMessages, fetchedUsage] = await Promise.all([
-          fetchMessages(),
+          fetchMessages(0),
           fetchUsage(),
         ]);
         if (!cancelled) {
           setMessages(fetchedMessages);
           setUsage(fetchedUsage);
+          setHasMore(fetchedMessages.length === PAGE_LIMIT);
         }
       } catch {
         if (!cancelled) setLoadError("Failed to load messages.");
@@ -290,6 +334,9 @@ export default function ChatPanel({
         streamingMessageId={streamingMessageId}
         currentUserId={currentUserId}
         onReply={handleReply}
+        hasMore={hasMore}
+        loadingOlder={loadingOlder}
+        onLoadOlder={loadOlder}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-app via-app/80 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6">
         <div className="pointer-events-auto mx-auto w-full max-w-[min(92%,100rem)] py-3">
