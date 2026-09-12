@@ -64,9 +64,13 @@ export function useRealtimeMessages(
       // Missing env (e.g. stale dev server predating .env.local) must
       // degrade to the poll fallback, never crash the chat page.
       supabase = createClient();
-    } catch {
+    } catch (err) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus("error");
+      console.warn(
+        "[realtime] client unavailable, using poll fallback",
+        err instanceof Error ? err.message : err
+      );
       return;
     }
     const channel = supabase
@@ -91,8 +95,10 @@ export function useRealtimeMessages(
       )
       .subscribe((s, err) => {
         if (cancelled) return;
-        if (s === "SUBSCRIBED") setStatus("subscribed");
-        else if (s === "CLOSED") {
+        if (s === "SUBSCRIBED") {
+          setStatus("subscribed");
+          console.debug("[realtime] subscribed");
+        } else if (s === "CLOSED") {
           setStatus("closed");
           console.warn("[realtime] channel closed", err ?? "");
         } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
