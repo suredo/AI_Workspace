@@ -18,7 +18,8 @@ export function parseComposer(value: string): ComposerPayload {
   const text = value.trim();
   const match = /^\/(\w+)([\s\S]*)$/.exec(text);
   if (!match) return { kind: "chat", text };
-  const [, command, rest] = match;
+  const command = match[1].toLowerCase();
+  const rest = match[2];
   if (command === "ai") {
     return rest.trim()
       ? { kind: "ai", text, command }

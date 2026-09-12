@@ -48,4 +48,16 @@ describe("parseComposer", () => {
   it("does not treat mid-text slashes as commands", () => {
     expect(parseComposer("see /ai for details").kind).toBe("chat");
   });
+
+  it("matches commands case-insensitively", () => {
+    expect(parseComposer("/AI Summarize this")).toEqual({
+      kind: "ai",
+      text: "/AI Summarize this",
+      command: "ai",
+    });
+    expect(parseComposer("/HELP")).toMatchObject({
+      kind: "help",
+      command: "help",
+    });
+  });
 });
