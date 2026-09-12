@@ -44,6 +44,9 @@ export default function MessageInput({
   const [menuQuery, setMenuQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Last query the menu was synced for: arrow-key caret moves re-fire
+  // keyup/click syncs, which must not reset the highlight.
+  const menuQueryRef = useRef("");
 
   const trimmed = value.trim();
   const disabled = sending || capReached || trimmed.length === 0;
@@ -65,8 +68,11 @@ export default function MessageInput({
       setMenuOpen(false);
       return;
     }
-    setMenuQuery(token);
-    setActiveIndex(0);
+    if (token !== menuQueryRef.current) {
+      menuQueryRef.current = token;
+      setMenuQuery(token);
+      setActiveIndex(0);
+    }
     setMenuOpen(true);
   }
 
@@ -77,6 +83,8 @@ export default function MessageInput({
     const rest = spaceAt === -1 ? "" : current.slice(spaceAt);
     const completed = `/${command.name}${rest ? ` ${rest.trimStart()}` : " "}`;
     setValue(completed);
+    menuQueryRef.current = command.name;
+    setMenuQuery(command.name);
     setMenuOpen(false);
     requestAnimationFrame(() => {
       el?.focus();
@@ -96,6 +104,7 @@ export default function MessageInput({
   function handleSend() {
     if (disabled) return;
     setMenuOpen(false);
+    menuQueryRef.current = "";
     onSend(parseComposer(value));
     setValue("");
   }
