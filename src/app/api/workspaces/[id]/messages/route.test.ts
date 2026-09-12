@@ -93,9 +93,27 @@ function mockUsers(data: { id: string; display_name: string }[]) {
   };
 }
 
-function mockInsertUser() {
+function mockInsertUser(row: Record<string, unknown> = {}) {
   return {
-    insert: vi.fn().mockResolvedValue({ error: null }),
+    insert: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: "msg-user",
+            workspace_id: "ws-123",
+            sender_id: "user-123",
+            role: "user",
+            content: "Hello",
+            model: null,
+            cost_cents: null,
+            reasoning: null,
+            created_at: "2026-01-01T00:00:00Z",
+            ...row,
+          },
+          error: null,
+        }),
+      }),
+    }),
   };
 }
 
@@ -343,9 +361,9 @@ describe("POST /api/workspaces/[id]/messages", () => {
 
     mockFrom = vi.fn()
       .mockReturnValueOnce(mockSingle(membership, null))
+      .mockReturnValueOnce(mockInsertUser())
       .mockReturnValueOnce(mockSingleEq(workspace, null))
       .mockReturnValueOnce(mockSpend(spend))
-      .mockReturnValueOnce(mockInsertUser())
       .mockReturnValueOnce(mockHistory(history))
       .mockReturnValueOnce(mockUsers(users))
       .mockReturnValueOnce(mockInsertAi());
@@ -360,7 +378,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
       new Request("http://localhost:3000/api/workspaces/ws-123/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: "Hello AI" }),
+        body: JSON.stringify({ content: "Hello AI", invoke_ai: true }),
       }),
       { params: Promise.resolve({ id: "ws-123" }) }
     );
@@ -374,10 +392,12 @@ describe("POST /api/workspaces/[id]/messages", () => {
     expect(text).toContain("event: done");
     expect(text).toContain('"messageId":"msg-ai"');
 
-    // 7 supabase calls: membership, workspace, spend, insert user,
+    // 7 supabase calls: membership, insert user, workspace, spend,
     // history, user names, insert AI
     expect(mockFrom).toHaveBeenCalledTimes(7);
     expect(mockFrom).toHaveBeenNthCalledWith(1, "workspace_members");
+    expect(mockFrom).toHaveBeenNthCalledWith(2, "messages");
+    expect(mockFrom).toHaveBeenNthCalledWith(3, "workspaces");
     expect(mockFrom).toHaveBeenNthCalledWith(4, "messages");
     expect(mockFrom).toHaveBeenNthCalledWith(6, "users");
     expect(mockFrom).toHaveBeenNthCalledWith(7, "messages");
@@ -417,7 +437,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
       new Request("http://localhost:3000/api/workspaces/ws-123/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: "Thanks!" }),
+        body: JSON.stringify({ content: "Thanks!", invoke_ai: true }),
       }),
       { params: Promise.resolve({ id: "ws-123" }) }
     );
@@ -466,7 +486,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
       new Request("http://localhost:3000/api/workspaces/ws-123/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: "Hello?" }),
+        body: JSON.stringify({ content: "Hello?", invoke_ai: true }),
       }),
       { params: Promise.resolve({ id: "ws-123" }) }
     );
@@ -520,6 +540,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
   it("returns 400 when no API key configured", async () => {
     mockFrom = vi.fn()
       .mockReturnValueOnce(mockSingle(TEST_MEMBERSHIP, null))
+      .mockReturnValueOnce(mockInsertUser())
       .mockReturnValueOnce(
         mockSingleEq({ ...TEST_WORKSPACE, llm_api_key_encrypted: null }, null)
       );
@@ -530,7 +551,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
       new Request("http://localhost:3000/api/workspaces/ws-123/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: "Hi" }),
+        body: JSON.stringify({ content: "Hi", invoke_ai: true }),
       }),
       { params: Promise.resolve({ id: "ws-123" }) }
     );
@@ -585,6 +606,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
   it("returns 429 when over the daily cap", async () => {
     mockFrom = vi.fn()
       .mockReturnValueOnce(mockSingle(TEST_MEMBERSHIP, null))
+      .mockReturnValueOnce(mockInsertUser())
       .mockReturnValueOnce(mockSingleEq(TEST_WORKSPACE, null))
       .mockReturnValueOnce(mockSpend([{ cost_cents: 500 }]));
     mockSupabase.from = mockFrom;
@@ -594,7 +616,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
       new Request("http://localhost:3000/api/workspaces/ws-123/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: "Hi" }),
+        body: JSON.stringify({ content: "Hi", invoke_ai: true }),
       }),
       { params: Promise.resolve({ id: "ws-123" }) }
     );
@@ -621,7 +643,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
       new Request("http://localhost:3000/api/workspaces/ws-123/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: "Hi" }),
+        body: JSON.stringify({ content: "Hi", invoke_ai: true }),
       }),
       { params: Promise.resolve({ id: "ws-123" }) }
     );
@@ -657,9 +679,9 @@ describe("POST /api/workspaces/[id]/messages", () => {
 
     mockFrom = vi.fn()
       .mockReturnValueOnce(mockSingle(TEST_MEMBERSHIP, null))
+      .mockReturnValueOnce(mockInsertUser())
       .mockReturnValueOnce(mockSingleEq(TEST_WORKSPACE, null))
       .mockReturnValueOnce(mockSpend([{ cost_cents: 0 }]))
-      .mockReturnValueOnce(mockInsertUser())
       .mockReturnValueOnce(mockHistory([{ role: "user", content: "Hi" }]))
       .mockReturnValueOnce({ insert: insertAi });
     mockSupabase.from = mockFrom;
@@ -669,7 +691,7 @@ describe("POST /api/workspaces/[id]/messages", () => {
       new Request("http://localhost:3000/api/workspaces/ws-123/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: "Hi" }),
+        body: JSON.stringify({ content: "Hi", invoke_ai: true }),
       }),
       { params: Promise.resolve({ id: "ws-123" }) }
     );
@@ -685,6 +707,70 @@ describe("POST /api/workspaces/[id]/messages", () => {
     // Answer stays clean and reasoning is persisted separately.
     expect(savedContent).toBe("Hello!");
     expect(savedReasoning).toBe("secret reasoning");
+  });
+});
+
+describe("POST chat mode (no invoke_ai)", () => {
+  let mockSupabase: ReturnType<typeof createMockSupabase>;
+  let mockFrom: Mock;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSupabase = createMockSupabase();
+    mockCreateClient.mockResolvedValue(mockSupabase);
+    mockAuth.mockResolvedValue({ user: { id: "user-123" } });
+    mockGetProvider.mockReset();
+  });
+
+  function setupChatFlow() {
+    mockFrom = vi.fn()
+      .mockReturnValueOnce(mockSingle(TEST_MEMBERSHIP, null))
+      .mockReturnValueOnce(mockInsertUser({ content: "Hello team" }))
+      .mockReturnValueOnce(
+        mockUsers([{ id: "user-123", display_name: "Test User" }])
+      );
+    mockSupabase.from = mockFrom;
+  }
+
+  async function postChat(body: Record<string, unknown>) {
+    const { POST } = await import(
+      "@/app/api/workspaces/[id]/messages/route"
+    );
+    return POST(
+      new Request("http://localhost:3000/api/workspaces/ws-123/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ id: "ws-123" }) }
+    );
+  }
+
+  it("saves plain chat without touching the LLM", async () => {
+    setupChatFlow();
+    const response = await postChat({ content: "Hello team" });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toContain(
+      "application/json"
+    );
+    expect(payload.message.content).toBe("Hello team");
+    expect(payload.message.display_name).toBe("Test User");
+    expect(payload.message.cost_cents).toBeNull();
+    // Membership, insert, sender names — no workspace fetch, spend check,
+    // history fetch, provider init, or AI insert.
+    expect(mockFrom).toHaveBeenCalledTimes(3);
+    expect(mockGetProvider).not.toHaveBeenCalled();
+  });
+
+  it("still validates content in chat mode", async () => {
+    setupChatFlow();
+    const response = await postChat({ content: "   " });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toBe("Message content is required");
   });
 });
 

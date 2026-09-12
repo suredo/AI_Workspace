@@ -286,7 +286,7 @@ export async function POST(
     return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
   }
 
-  let body: { content?: string };
+  let body: { content?: string; invoke_ai?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -294,6 +294,8 @@ export async function POST(
   }
 
   const content = body.content?.trim() ?? "";
+  // Explicit opt-in: plain chat never touches the LLM (see issue #99).
+  const invokeAi = body.invoke_ai === true;
   if (!content) {
     return NextResponse.json(
       { error: "Message content is required" },
@@ -307,6 +309,45 @@ export async function POST(
       },
       { status: 400 }
     );
+  }
+
+  // Insert the user message first: plain chat is saved and broadcast
+  // without touching the LLM, and the AI path streams it right after.
+  const { data: savedMessage, error: insertError } = await supabase
+    .from("messages")
+    .insert({
+      workspace_id: id,
+      sender_id: userId,
+      role: "user",
+      content,
+    })
+    .select("id, workspace_id, sender_id, role, content, model, reasoning, created_at")
+    .single();
+
+  if (insertError || !savedMessage) {
+    logger.error(CTX, "Failed to insert user message", {
+      error: insertError?.message,
+    });
+    return NextResponse.json(
+      { error: "Failed to send message" },
+      { status: 500 }
+    );
+  }
+
+  // Plain chat: saved and broadcast, no LLM call, no spend gating.
+  if (!invokeAi) {
+    const nameMap = await fetchSenderNames(supabase, [savedMessage]);
+    const row = savedMessage as Omit<MessageWithSender, "display_name">;
+    return NextResponse.json({
+      message: {
+        ...row,
+        cost_cents: null,
+        display_name:
+          row.sender_id === null
+            ? "AI Assistant"
+            : nameMap[row.sender_id] || "Unknown",
+      },
+    });
   }
 
   const { data: workspace, error: workspaceError } = await supabase
@@ -382,24 +423,6 @@ export async function POST(
     const message = e instanceof Error ? e.message : "Failed to initialize provider";
     logger.error(CTX, "Failed to create provider", { error: message });
     return NextResponse.json({ error: message }, { status: 500 });
-  }
-
-  // Insert the user message before streaming the AI response.
-  const { error: insertError } = await supabase.from("messages").insert({
-    workspace_id: id,
-    sender_id: userId,
-    role: "user",
-    content,
-  });
-
-  if (insertError) {
-    logger.error(CTX, "Failed to insert user message", {
-      error: insertError.message,
-    });
-    return NextResponse.json(
-      { error: "Failed to send message" },
-      { status: 500 }
-    );
   }
 
   // Fetch recent history for context (newest first, then reverse).
