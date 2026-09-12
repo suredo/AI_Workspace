@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import type { MessageWithSender } from "@/lib/types";
 import ChatThread from "./ChatThread";
 import MessageInput, { type ComposerPayload } from "./MessageInput";
+import { SLASH_COMMANDS } from "./commands";
 import { useRealtimeMessages } from "./useRealtimeMessages";
 
 const POLL_FALLBACK_INTERVAL_MS = 30000;
@@ -489,9 +490,16 @@ export default function ChatPanel({
           <div className="mt-2 rounded border border-line bg-elevated/60 px-3 py-2 text-xs text-muted">
             <div className="flex items-start justify-between gap-2">
               <p className="font-mono">
-                <span className="font-semibold text-accent">/ai</span> ask the
-                AI anything · <span className="font-semibold text-accent">/help</span> show
-                this message
+                {SLASH_COMMANDS.map((command, index) => (
+                  <span key={command.name}>
+                    {index > 0 && " · "}
+                    <span className="font-semibold text-accent">
+                      /{command.name}
+                    </span>{" "}
+                    {command.description.charAt(0).toLowerCase() +
+                      command.description.slice(1)}
+                  </span>
+                ))}
               </p>
               <button
                 type="button"
