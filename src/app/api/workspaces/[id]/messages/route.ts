@@ -224,13 +224,16 @@ export async function GET(
 
   // Per-message costs are never exposed in the chat feed (see issue #59):
   // spend is only visible to the owner via the members-usage endpoint.
+  // Newest-first window, reversed below: the feed must include the latest
+  // messages, otherwise end-of-stream refreshes drop them (see issue #92).
   const { data: messages, error: messagesError } = await supabase
     .from("messages")
     .select(
       "id, workspace_id, sender_id, role, content, model, reasoning, created_at"
     )
     .eq("workspace_id", id)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (messagesError) {
@@ -244,7 +247,9 @@ export async function GET(
   }
 
   const nameMap = await fetchSenderNames(supabase, messages || []);
-  const result: MessageWithSender[] = (messages || []).map((m) => ({
+  // The window above is newest-first; the thread expects chronological order.
+  const ordered = [...(messages || [])].reverse();
+  const result: MessageWithSender[] = ordered.map((m) => ({
     ...(m as Omit<MessageWithSender, "display_name">),
     cost_cents: null,
     display_name:
