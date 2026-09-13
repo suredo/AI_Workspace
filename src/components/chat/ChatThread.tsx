@@ -14,6 +14,7 @@ export default function ChatThread({
   hasMore,
   loadingOlder,
   onLoadOlder,
+  focusMessageId,
 }: {
   messages: MessageWithSender[];
   streaming: boolean;
@@ -23,6 +24,7 @@ export default function ChatThread({
   hasMore: boolean;
   loadingOlder: boolean;
   onLoadOlder: () => Promise<void>;
+  focusMessageId: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Sticky-scroll: only yank to the bottom when the user is already near
@@ -68,6 +70,23 @@ export default function ChatThread({
     }
   }, [messages]);
 
+  // /find jumps: scroll the requested message into view once per id.
+  const focusedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusMessageId || focusMessageId === focusedRef.current) return;
+    focusedRef.current = focusMessageId;
+    const target = containerRef.current?.querySelector(
+      `[data-message-id="${focusMessageId}"]`
+    );
+    // scrollIntoView can throw on detached nodes; the thread is append-only
+    // so a missing node just means it hasn't rendered yet.
+    try {
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch {
+      // No-op: user can still scroll manually to the highlighted row.
+    }
+  }, [focusMessageId, messages]);
+
   if (messages.length === 0 && !streaming) {
     return (
       <div className="flex min-h-64 flex-1 items-center justify-center text-muted">
@@ -92,18 +111,27 @@ export default function ChatThread({
         </div>
       )}
       {messages.map((message) => (
-        <MessageBubble
+        <div
           key={message.id}
-          message={message}
-          streaming={streaming && message.id === streamingMessageId}
-          isOwn={message.sender_id !== null && message.sender_id === currentUserId}
-          onReply={onReply}
-          quoteAuthor={findQuoteAuthor(
-            splitReply(message.content.trim())?.excerpt ?? "",
-            messages,
-            message.id
-          )}
-        />
+          data-message-id={message.id}
+          className={
+            message.id === focusMessageId
+              ? "rounded-md outline-2 outline-solid outline-accent"
+              : undefined
+          }
+        >
+          <MessageBubble
+            message={message}
+            streaming={streaming && message.id === streamingMessageId}
+            isOwn={message.sender_id !== null && message.sender_id === currentUserId}
+            onReply={onReply}
+            quoteAuthor={findQuoteAuthor(
+              splitReply(message.content.trim())?.excerpt ?? "",
+              messages,
+              message.id
+            )}
+          />
+        </div>
       ))}
       {streaming && streamingMessageId === null && (
         <div className="flex items-center gap-2 text-sm text-muted">

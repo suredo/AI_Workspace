@@ -8,6 +8,11 @@ export interface SlashCommand {
   usage: string;
   /** Whether the command requires arguments to run. */
   takesArgs: boolean;
+  /**
+   * Composer kind this command dispatches to. Defaults to the command
+   * name (e.g. "help"); aliases like "ask" override it to "ai".
+   */
+  kind?: string;
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
@@ -18,10 +23,23 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     takesArgs: true,
   },
   {
+    name: "ask",
+    description: "Ask the AI anything (same as /ai)",
+    usage: "/ask <question>",
+    takesArgs: true,
+    kind: "ai",
+  },
+  {
     name: "help",
     description: "Show available commands",
     usage: "/help",
     takesArgs: false,
+  },
+  {
+    name: "find",
+    description: "Find text in this thread",
+    usage: "/find <text>",
+    takesArgs: true,
   },
 ];
 

@@ -5,7 +5,7 @@ import { ArrowUp, LoaderCircle } from "lucide-react";
 import { filterCommands, findCommand, type SlashCommand } from "./commands";
 import SlashCommandMenu from "./SlashCommandMenu";
 
-export type ComposerKind = "chat" | "ai" | "help" | "unknown";
+export type ComposerKind = "chat" | "ai" | "help" | "find" | "unknown";
 
 export interface ComposerPayload {
   kind: ComposerKind;
@@ -27,7 +27,11 @@ export function parseComposer(value: string): ComposerPayload {
   if (command.takesArgs && !rest.trim()) {
     return { kind: "unknown", text, command: name };
   }
-  return { kind: command.name as ComposerKind, text, command: name };
+  return {
+    kind: (command.kind ?? command.name) as ComposerKind,
+    text,
+    command: name,
+  };
 }
 
 export default function MessageInput({

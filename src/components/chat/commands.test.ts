@@ -10,7 +10,7 @@ describe("filterCommands", () => {
   });
 
   it("prefix-filters case-insensitively", () => {
-    expect(filterCommands("a").map((c) => c.name)).toEqual(["ai"]);
+    expect(filterCommands("a").map((c) => c.name)).toEqual(["ai", "ask"]);
     expect(filterCommands("H").map((c) => c.name)).toEqual(["help"]);
     expect(filterCommands("zzz")).toEqual([]);
   });
@@ -28,7 +28,13 @@ describe("registry consistency", () => {
   it("every registry command parses through the composer", () => {
     for (const command of SLASH_COMMANDS) {
       const input = command.takesArgs ? `/${command.name} some args` : `/${command.name}`;
-      expect(parseComposer(input).kind).toBe(command.name);
+      expect(parseComposer(input).kind).toBe(command.kind ?? command.name);
+    }
+  });
+
+  it("every registry command is mentioned by the menu filter", () => {
+    for (const command of SLASH_COMMANDS) {
+      expect(filterCommands(command.name)).toContainEqual(command);
     }
   });
 });
