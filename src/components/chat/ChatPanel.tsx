@@ -496,16 +496,26 @@ export default function ChatPanel({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-app via-app/80 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6">
         <div className="pointer-events-auto mx-auto w-full max-w-[min(92%,100rem)] py-3">
         {sendError && (
-          <div className="mb-3 rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-300">
-            {sendError}{" "}
-            {sendError.toLowerCase().includes("configur") && (
-              <Link
-                href={`/workspaces/${workspaceId}/settings`}
-                className="font-medium underline hover:text-red-800"
-              >
-                Configure the AI provider in Settings.
-              </Link>
-            )}
+          <div className="mb-3 flex items-start gap-2 rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-300">
+            <div className="min-w-0 flex-1">
+              {sendError}{" "}
+              {sendError.toLowerCase().includes("configur") && (
+                <Link
+                  href={`/workspaces/${workspaceId}/settings`}
+                  className="font-medium underline hover:text-red-800"
+                >
+                  Configure the AI provider in Settings.
+                </Link>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSendError(null)}
+              aria-label="Dismiss error"
+              className="rounded p-1 text-red-600/70 hover:bg-red-500/10 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:text-red-300/70 dark:hover:text-red-300"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden />
+            </button>
           </div>
         )}
         <MessageInput
