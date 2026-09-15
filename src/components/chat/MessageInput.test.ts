@@ -49,6 +49,29 @@ describe("parseComposer", () => {
     expect(parseComposer("see /ai for details").kind).toBe("chat");
   });
 
+  it("treats /ask as an /ai alias", () => {
+    expect(parseComposer("/ask what is RAG?")).toEqual({
+      kind: "ai",
+      text: "/ask what is RAG?",
+      command: "ask",
+    });
+  });
+
+  it("parses /find with a query", () => {
+    expect(parseComposer("/find memory leak")).toEqual({
+      kind: "find",
+      text: "/find memory leak",
+      command: "find",
+    });
+  });
+
+  it("treats bare /find as unknown (usage error)", () => {
+    expect(parseComposer("/find")).toMatchObject({
+      kind: "unknown",
+      command: "find",
+    });
+  });
+
   it("matches commands case-insensitively", () => {
     expect(parseComposer("/AI Summarize this")).toEqual({
       kind: "ai",

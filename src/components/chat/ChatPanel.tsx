@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import type { MessageWithSender } from "@/lib/types";
 import ChatThread from "./ChatThread";
 import MessageInput, { type ComposerPayload } from "./MessageInput";
+import { SLASH_COMMANDS, findCommand } from "./commands";
 import { useRealtimeMessages } from "./useRealtimeMessages";
 
 const POLL_FALLBACK_INTERVAL_MS = 30000;
@@ -39,6 +40,11 @@ export default function ChatPanel({
   );
   const [sendError, setSendError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [findNotice, setFindNotice] = useState<{
+    query: string;
+    total: number;
+  } | null>(null);
+  const [focusMessageId, setFocusMessageId] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<{
     display_name: string;
     excerpt: string;
@@ -205,11 +211,18 @@ export default function ChatPanel({
       return;
     }
     if (payload.kind === "unknown") {
+      const usage = payload.command
+        ? findCommand(payload.command)?.usage
+        : undefined;
       setSendError(
-        payload.command === "ai"
-          ? "Usage: /ai <your question>"
+        usage
+          ? `Usage: ${usage}`
           : `Unknown command "/${payload.command}". Try /ai or /help.`
       );
+      return;
+    }
+    if (payload.kind === "find") {
+      handleFind(payload.text);
       return;
     }
 
@@ -428,6 +441,20 @@ export default function ChatPanel({
     setReplyTo({ display_name: message.display_name, excerpt });
   }
 
+  /** Local thread search: jump to the first match and report the count. */
+  function handleFind(text: string) {
+    const query = text
+      .replace(/^\/\w+/, "")
+      .trim()
+      .toLowerCase();
+    if (!query) return;
+    const matches = messages.filter((m) =>
+      m.content.toLowerCase().includes(query)
+    );
+    setFindNotice({ query: query.slice(0, 80), total: matches.length });
+    setFocusMessageId(matches.length > 0 ? matches[0].id : null);
+  }
+
   useEffect(() => {
     if (!replyTo) return;
     function handleKeyDown(e: KeyboardEvent) {
@@ -464,6 +491,7 @@ export default function ChatPanel({
         hasMore={hasMore}
         loadingOlder={loadingOlder}
         onLoadOlder={loadOlder}
+        focusMessageId={focusMessageId}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-app via-app/80 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6">
         <div className="pointer-events-auto mx-auto w-full max-w-[min(92%,100rem)] py-3">
@@ -499,9 +527,16 @@ export default function ChatPanel({
           <div className="mt-2 rounded border border-line bg-elevated/60 px-3 py-2 text-xs text-muted">
             <div className="flex items-start justify-between gap-2">
               <p className="font-mono">
-                <span className="font-semibold text-accent">/ai</span> ask the
-                AI anything · <span className="font-semibold text-accent">/help</span> show
-                this message
+                {SLASH_COMMANDS.map((command, index) => (
+                  <span key={command.name}>
+                    {index > 0 && " · "}
+                    <span className="font-semibold text-accent">
+                      /{command.name}
+                    </span>{" "}
+                    {command.description.charAt(0).toLowerCase() +
+                      command.description.slice(1)}
+                  </span>
+                ))}
               </p>
               <button
                 type="button"
@@ -516,6 +551,40 @@ export default function ChatPanel({
               Plain messages go to your teammates only — the AI stays quiet
               unless you call it.
             </p>
+          </div>
+        )}
+        {findNotice && (
+          <div className="mt-2 flex items-start justify-between gap-2 rounded border border-line bg-elevated/60 px-3 py-2 text-xs text-muted">
+            <p>
+              {findNotice.total > 0 ? (
+                <>
+                  {findNotice.total} match{findNotice.total === 1 ? "" : "es"}{" "}
+                  for{" "}
+                  <span className="font-mono text-secondary">
+                    {findNotice.query}
+                  </span>{" "}
+                  — jumped to the first
+                </>
+              ) : (
+                <>
+                  No matches for{" "}
+                  <span className="font-mono text-secondary">
+                    {findNotice.query}
+                  </span>
+                </>
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setFindNotice(null);
+                setFocusMessageId(null);
+              }}
+              aria-label="Dismiss find results"
+              className="rounded p-0.5 text-muted hover:bg-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden />
+            </button>
           </div>
         )}
         {replyTo && (
